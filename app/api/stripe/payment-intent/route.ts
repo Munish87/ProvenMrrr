@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
 
-const isDev = process.env.NODE_ENV !== "production";
+
 
 export async function POST(req: NextRequest) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -54,7 +54,12 @@ export async function POST(req: NextRequest) {
             clientSecret: paymentIntent.client_secret,
         });
     } catch (err: any) {
-        if (isDev) console.error("[Stripe PaymentIntent Error]:", err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        // Always log - visible in Vercel Function Logs
+        console.error("[Stripe PaymentIntent Error]:", err?.message, err?.code, err?.type);
+        return NextResponse.json({ 
+            error: err.message,
+            code: err?.code,
+            type: err?.type 
+        }, { status: 500 });
     }
 }

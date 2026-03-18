@@ -28,8 +28,8 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Use STRIPE_SECRET_KEY for the Stripe client (not the webhook secret) ──
-    const stripe = new Stripe(stripeSecretKey || webhookSecret, {
-        apiVersion: "2026-02-25.clover" as any,
+    const stripe = new Stripe(stripeSecretKey!, {
+        apiVersion: "2025-01-27.acacia" as any,
     });
 
     let event: Stripe.Event;
@@ -49,17 +49,19 @@ export async function POST(request: NextRequest) {
             const session = event.data.object as Stripe.Checkout.Session;
             const startupId = session.metadata?.startup_id;
 
-            if (startupId) {
-                if (isDev) console.log(`[webhook] Listing fee paid for startup: ${startupId}`);
+            if (startupId && session.payment_status === "paid") {
+                console.log(`[webhook] Listing fee paid for startup: ${startupId}`);
                 const { error } = await admin
                     .from("startups")
                     .update({
-                        listing_fee_paid: true,
+                        listing_paid: true,
+                        listing_paid_at: new Date().toISOString(),
+                        stripe_session_id: session.id,
                         is_listed_for_sale: true,
                     })
                     .eq("id", startupId);
 
-                if (error && isDev) {
+                if (error) {
                     console.error(`[webhook] Error updating startup ${startupId}:`, error.message);
                 }
             }
@@ -158,20 +160,24 @@ export async function POST(request: NextRequest) {
         }
 
         case "payment_intent.succeeded": {
+            // Handled via checkout.session.completed for listing fees
+            // Legacy support: only process if it has a startup_id metadata and listing_paid isn't set
             const pi = event.data.object as Stripe.PaymentIntent;
             const startupId = pi.metadata?.startup_id;
 
-            if (startupId) {
-                if (isDev) console.log(`[webhook] PaymentIntent succeeded for startup: ${startupId}`);
+            if (startupId && pi.metadata?.type === "listing_fee") {
+                console.log(`[webhook] PaymentIntent succeeded for startup: ${startupId}`);
                 const { error } = await admin
                     .from("startups")
                     .update({
-                        listing_fee_paid: true,
+                        listing_paid: true,
+                        listing_paid_at: new Date().toISOString(),
                         is_listed_for_sale: true,
                     })
-                    .eq("id", startupId);
+                    .eq("id", startupId)
+                    .eq("listing_paid", false);
 
-                if (error && isDev) {
+                if (error) {
                     console.error(`[webhook] Error updating startup ${startupId}:`, error.message);
                 }
             }
@@ -184,7 +190,7 @@ export async function POST(request: NextRequest) {
         }
 
         default:
-            if (isDev) console.log(`[webhook] Unhandled event: ${event.type}`);
+            console.log(`[webhook] Unhandled event: ${event.type}`);
     }
 
     return NextResponse.json({ received: true });

@@ -1,19 +1,8 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { X, Check, Megaphone, Zap, Users, CreditCard, Lock, ShieldCheck, ChevronLeft, Loader2, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
-import { loadStripe } from "@stripe/stripe-js";
-import {
-    Elements,
-    PaymentElement,
-    useStripe,
-    useElements,
-} from "@stripe/react-stripe-js";
-import { createClient } from "@/lib/supabase/client";
-
-// Initialize Stripe outside of component to avoid recreation
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_placeholder");
+import { X, Check, Megaphone, Zap, Users, CreditCard, Lock, ChevronLeft, Loader2, Sparkles, ExternalLink } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
 
 interface ListingPlanModalProps {
     isOpen: boolean;
@@ -24,76 +13,52 @@ interface ListingPlanModalProps {
 }
 
 export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startupName }: ListingPlanModalProps) {
-    const [step, setStep] = useState<"info" | "payment" | "success">("info");
     const [isProcessing, setIsProcessing] = useState(false);
-    const [clientSecret, setClientSecret] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!isOpen) {
-            setStep("info");
             setIsProcessing(false);
-            setClientSecret(null);
+            setError(null);
         }
     }, [isOpen]);
 
-    // Real-time listener for payment confirmation
+    // Check on return from Stripe if payment was completed
     useEffect(() => {
-        if (!isOpen || step !== "payment") return;
+        if (!isOpen) return;
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("payment") === "success" && params.get("id") === startupId) {
+            onConfirm();
+        }
+    }, [isOpen, startupId, onConfirm]);
 
-        const supabase = createClient();
-        const channel = supabase
-            .channel(`payment-confirmation-${startupId}`)
-            .on(
-                "postgres_changes",
-                {
-                    event: "UPDATE",
-                    schema: "public",
-                    table: "startups",
-                    filter: `id=eq.${startupId}`,
-                },
-                (payload) => {
-                    const updated = payload.new as any;
-                    if (updated.listing_fee_paid) {
-                        setStep("success");
-                        setIsProcessing(false);
-                        // Optional: Clear local storage or triggers
-                        if (typeof window !== "undefined") {
-                            window.localStorage.setItem(`provenmrr-listing-paid:${startupId}`, "true");
-                        }
-                    }
-                }
-            )
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [isOpen, step, startupId]);
-
-    if (!isOpen) return null;
-
-    const handleProceedToPayment = async () => {
+    const handleProceedToPayment = useCallback(async () => {
         setIsProcessing(true);
+        setError(null);
         try {
-            const res = await fetch("/api/stripe/payment-intent", {
+            const res = await fetch("/api/stripe/checkout", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ startupId }),
             });
             const data = await res.json();
-            if (data.clientSecret) {
-                setClientSecret(data.clientSecret);
-                setStep("payment");
-            } else {
-                throw new Error(data.error || "Failed to initialize payment");
+            if (!res.ok) {
+                throw new Error(data.error || "Failed to initialize checkout");
             }
-        } catch (err) {
+            if (data.url) {
+                // Redirect to Stripe hosted checkout
+                window.location.href = data.url;
+            } else {
+                throw new Error("No checkout URL returned from server");
+            }
+        } catch (err: any) {
             console.error("[Payment Init Error]:", err);
-            alert("Could not initialize secure checkout. Please try again.");
-        } finally {
+            setError(err.message || "Could not initialize secure checkout. Please try again.");
             setIsProcessing(false);
         }
-    };
+    }, [startupId]);
+
+    if (!isOpen) return null;
 
     return createPortal(
         <div className="modal-overlay" style={{
@@ -113,12 +78,12 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
                     border: "1px solid var(--modal-card-border)",
                     boxShadow: "var(--modal-card-shadow)",
                     animation: "modalFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)"
-                }} 
+                }}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Close Button */}
-                {(step !== "success" && !isProcessing) && (
-                    <button 
+                {!isProcessing && (
+                    <button
                         type="button"
                         onClick={onClose}
                         style={{
@@ -134,161 +99,118 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
                     </button>
                 )}
 
-                {step === "info" && (
-                    <div style={{ animation: "slideIn 0.3s ease-out" }}>
-                        <div style={{ 
-                            background: "var(--color-surface)", padding: "32px 32px 24px", 
-                            color: "var(--color-text)", textAlign: "center",
-                            position: "relative", zIndex: 1
+                <div style={{ animation: "slideIn 0.3s ease-out" }}>
+                    {/* Header */}
+                    <div style={{
+                        background: "var(--color-surface)", padding: "32px 32px 24px",
+                        color: "var(--color-text)", textAlign: "center",
+                        position: "relative", zIndex: 1
+                    }}>
+                        <div style={{
+                            width: 64, height: 64, background: "var(--color-surface-strong)",
+                            border: "1px solid var(--color-border)", borderRadius: 20,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            margin: "0 auto 16px", boxShadow: "var(--shadow-card)"
                         }}>
-                            <div style={{ 
-                                width: 64, height: 64, background: "var(--color-surface-strong)", 
-                                border: "1px solid var(--color-border)", borderRadius: 20, 
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                margin: "0 auto 16px", boxShadow: "var(--shadow-card)"
-                            }}>
-                                <Megaphone size={32} color="var(--color-text)" />
-                            </div>
-                            <h2 style={{ fontSize: 26, fontWeight: 800, margin: "0 0 10px", letterSpacing: "-0.5px" }}>Marketplace Access</h2>
-                            <p style={{ fontSize: 15, color: "var(--color-secondary)", margin: 0, lineHeight: 1.4 }}>List <b>{startupName}</b> in the primary "For Sale" feed and reach verified investors.</p>
+                            <Megaphone size={32} color="var(--color-text)" />
                         </div>
-
-                        <div style={{ padding: "20px 32px 28px", position: "relative", zIndex: 1 }}>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 24, marginBottom: 24 }}>
-                                <div style={{ display: "flex", gap: 16 }}>
-                                    <div style={{ width: 44, height: 44, background: "linear-gradient(135deg, rgba(125, 162, 255, 0.14), rgba(91, 124, 255, 0.08) 42%, rgba(255, 255, 255, 0.92) 100%)", border: "1px solid rgba(126,161,255,0.22)", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", color: "#5b7cff", flexShrink: 0, boxShadow: "0 10px 22px rgba(91,124,255,0.12), inset 0 1px 0 rgba(255,255,255,0.92)" }}>
-                                        <Zap size={22} fill="currentColor" />
-                                    </div>
-                                    <div>
-                                        <h4 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 4px", color: "var(--color-text)" }}>Priority Placement</h4>
-                                        <p style={{ fontSize: 13, color: "var(--color-secondary)", margin: 0, lineHeight: 1.5 }}>Your startup appears at the top of category filters for 30 days.</p>
-                                    </div>
-                                </div>
-                                <div style={{ display: "flex", gap: 16 }}>
-                                    <div style={{ width: 44, height: 44, background: "linear-gradient(135deg, rgba(52,211,153,0.14), rgba(16,185,129,0.08) 42%, rgba(255, 255, 255, 0.92) 100%)", border: "1px solid rgba(52,211,153,0.24)", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", color: "#10b981", flexShrink: 0, boxShadow: "0 10px 22px rgba(16,185,129,0.12), inset 0 1px 0 rgba(255,255,255,0.92)" }}>
-                                        <Users size={22} />
-                                    </div>
-                                    <div>
-                                        <h4 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 4px", color: "var(--color-text)" }}>120k+ Monthly Visitors</h4>
-                                        <p style={{ fontSize: 13, color: "var(--color-secondary)", margin: 0, lineHeight: 1.5 }}>Direct exposure to our network of SaaS acquirers.</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div style={{ 
-                                background: "var(--color-surface)", borderRadius: 24, 
-                                padding: "24px", textAlign: "center", border: "1px solid var(--color-border)",
-                                boxShadow: "var(--shadow-card)", marginBottom: 20
-                            }}>
-                                <p style={{ fontSize: 11, fontWeight: 800, color: "#818cf8", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 8 }}>ProvenMRR Pro Listing</p>
-                                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 6 }}>
-                                    <span style={{ fontSize: 48, fontWeight: 900, color: "var(--color-text)", letterSpacing: "-0.04em" }}>$0.50</span>
-                                    <span style={{ fontSize: 16, fontWeight: 600, color: "var(--color-secondary)" }}>one-time</span>
-                                </div>
-                            </div>
-
-                            <button 
-                                type="button"
-                                onClick={handleProceedToPayment}
-                                disabled={isProcessing}
-                                style={{
-                                    width: "100%",
-                                    background: "linear-gradient(135deg, #7da2ff 0%, #5b7cff 45%, #4465f5 100%)",
-                                    color: "white", border: "none", borderRadius: 999,
-                                    padding: "18px", fontSize: 16, fontWeight: 700, cursor: "pointer",
-                                    display: "flex", alignItems: "center", justifyContent: "center",
-                                    gap: 12, boxShadow: "0 16px 28px rgba(91,124,255,0.24), inset 0 1px 0 rgba(255,255,255,0.24)",
-                                    minHeight: 58, boxSizing: "border-box", opacity: isProcessing ? 0.7 : 1
-                                }}
-                            >
-                                {isProcessing ? <Loader2 className="animate-spin" /> : "Continue to Checkout"}
-                            </button>
-                        </div>
+                        <h2 style={{ fontSize: 26, fontWeight: 800, margin: "0 0 10px", letterSpacing: "-0.5px" }}>Marketplace Access</h2>
+                        <p style={{ fontSize: 15, color: "var(--color-secondary)", margin: 0, lineHeight: 1.4 }}>List <b>{startupName}</b> in the primary &quot;For Sale&quot; feed and reach verified investors.</p>
                     </div>
-                )}
 
-                {step === "payment" && clientSecret && (
-                    <div style={{ padding: 32, animation: "slideIn 0.3s ease-out", position: "relative", zIndex: 1 }}>
-                        <button 
+                    <div style={{ padding: "20px 32px 28px", position: "relative", zIndex: 1 }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 24, marginBottom: 24 }}>
+                            {/* Feature: Priority Placement */}
+                            <div style={{ display: "flex", gap: 16 }}>
+                                <div style={{ width: 44, height: 44, background: "linear-gradient(135deg, rgba(125, 162, 255, 0.14), rgba(91, 124, 255, 0.08) 42%, rgba(255, 255, 255, 0.92) 100%)", border: "1px solid rgba(126,161,255,0.22)", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", color: "#5b7cff", flexShrink: 0, boxShadow: "0 10px 22px rgba(91,124,255,0.12), inset 0 1px 0 rgba(255,255,255,0.92)" }}>
+                                    <Zap size={22} fill="currentColor" />
+                                </div>
+                                <div>
+                                    <h4 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 4px", color: "var(--color-text)" }}>Priority Placement</h4>
+                                    <p style={{ fontSize: 13, color: "var(--color-secondary)", margin: 0, lineHeight: 1.5 }}>Your startup appears at the top of category filters for 30 days.</p>
+                                </div>
+                            </div>
+
+                            {/* Feature: 120k Visitors */}
+                            <div style={{ display: "flex", gap: 16 }}>
+                                <div style={{ width: 44, height: 44, background: "linear-gradient(135deg, rgba(52,211,153,0.14), rgba(16,185,129,0.08) 42%, rgba(255, 255, 255, 0.92) 100%)", border: "1px solid rgba(52,211,153,0.24)", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", color: "#10b981", flexShrink: 0, boxShadow: "0 10px 22px rgba(16,185,129,0.12), inset 0 1px 0 rgba(255,255,255,0.92)" }}>
+                                    <Users size={22} />
+                                </div>
+                                <div>
+                                    <h4 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 4px", color: "var(--color-text)" }}>120k+ Monthly Visitors</h4>
+                                    <p style={{ fontSize: 13, color: "var(--color-secondary)", margin: 0, lineHeight: 1.5 }}>Direct exposure to our network of SaaS acquirers.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Price Block */}
+                        <div style={{
+                            background: "var(--color-surface)", borderRadius: 24,
+                            padding: "24px", textAlign: "center", border: "1px solid var(--color-border)",
+                            boxShadow: "var(--shadow-card)", marginBottom: 20
+                        }}>
+                            <p style={{ fontSize: 11, fontWeight: 800, color: "#818cf8", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 8 }}>ProvenMRR Pro Listing</p>
+                            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 6 }}>
+                                <span style={{ fontSize: 48, fontWeight: 900, color: "var(--color-text)", letterSpacing: "-0.04em" }}>$0.50</span>
+                                <span style={{ fontSize: 16, fontWeight: 600, color: "var(--color-secondary)" }}>one-time</span>
+                            </div>
+                            <p style={{ fontSize: 12, color: "var(--color-secondary)", margin: "8px 0 0", opacity: 0.7 }}>Secure payment via Stripe</p>
+                        </div>
+
+                        {/* Error */}
+                        {error && (
+                            <div style={{
+                                background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)",
+                                borderRadius: 12, padding: "12px 16px", marginBottom: 16,
+                                color: "#ef4444", fontSize: 13, fontWeight: 500
+                            }}>
+                                {error}
+                            </div>
+                        )}
+
+                        {/* CTA Button */}
+                        <button
                             type="button"
-                            onClick={() => setStep("info")}
+                            onClick={handleProceedToPayment}
                             disabled={isProcessing}
                             style={{
-                                display: "flex", alignItems: "center", gap: 6,
-                                background: "none", border: "none", color: "var(--color-secondary)",
-                                fontSize: 14, fontWeight: 600, cursor: "pointer",
-                                padding: 0, marginBottom: 32, opacity: isProcessing ? 0.5 : 1
+                                width: "100%",
+                                background: isProcessing
+                                    ? "rgba(91,124,255,0.5)"
+                                    : "linear-gradient(135deg, #7da2ff 0%, #5b7cff 45%, #4465f5 100%)",
+                                color: "white", border: "none", borderRadius: 999,
+                                padding: "18px", fontSize: 16, fontWeight: 700, cursor: isProcessing ? "not-allowed" : "pointer",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                gap: 12, boxShadow: isProcessing ? "none" : "0 16px 28px rgba(91,124,255,0.24), inset 0 1px 0 rgba(255,255,255,0.24)",
+                                minHeight: 58, boxSizing: "border-box",
+                                transition: "all 0.3s ease"
                             }}
                         >
-                            <ChevronLeft size={16} /> Back
+                            {isProcessing ? (
+                                <>
+                                    <Loader2 size={20} className="animate-spin" />
+                                    Redirecting to Stripe...
+                                </>
+                            ) : (
+                                <>
+                                    <ExternalLink size={18} />
+                                    Pay $0.50 &amp; List Startup
+                                </>
+                            )}
                         </button>
 
-                        <div style={{ textAlign: "center", marginBottom: 32 }}>
-                            <div style={{ 
-                                width: 56, height: 56, 
-                                background: "color-mix(in srgb, var(--color-accent) 12%, var(--color-surface))", 
-                                borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center",
-                                color: "#8eaaff", margin: "0 auto 20px", border: "1px solid rgba(126,161,255,0.22)"
-                            }}>
-                                <CreditCard size={28} />
-                            </div>
-                            <h2 style={{ fontSize: 28, fontWeight: 800, color: "var(--color-text)", margin: "0 0 8px", letterSpacing: "-0.03em" }}>Secure Payment</h2>
-                            <p style={{ fontSize: 15, color: "var(--color-secondary)", margin: 0, fontWeight: 500 }}>Securely list <b>{startupName}</b></p>
-                        </div>
-
-                        <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night' as any } }}>
-                            <CheckoutForm 
-                                startupId={startupId} 
-                                onProcessing={setIsProcessing} 
-                                isProcessing={isProcessing} 
-                            />
-                        </Elements>
-
-                        <div style={{ 
-                            display: "flex", alignItems: "center", justifyContent: "center", 
-                            gap: 12, marginTop: 32, padding: "14px",
-                            background: "var(--color-surface)", borderRadius: 16,
-                            border: "1px solid var(--color-border)", boxShadow: "var(--shadow-card)"
+                        {/* Security badge */}
+                        <div style={{
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            gap: 8, marginTop: 16
                         }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                <Lock size={14} color="#10B981" />
-                                <span style={{ fontSize: 11, fontWeight: 800, color: "#10B981", textTransform: "uppercase", letterSpacing: "0.05em" }}>Secured by Stripe</span>
-                            </div>
+                            <Lock size={12} color="#10B981" />
+                            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-secondary)", opacity: 0.7 }}>
+                                256-bit SSL encrypted · Powered by Stripe
+                            </span>
                         </div>
                     </div>
-                )}
-
-                {step === "success" && (
-                    <div style={{ padding: "48px 32px", textAlign: "center", animation: "slideIn 0.3s ease-out" }}>
-                        <div style={{ 
-                            width: 80, height: 80, background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", 
-                            borderRadius: 24, display: "flex", alignItems: "center", justifyContent: "center",
-                            color: "white", margin: "0 auto 24px", boxShadow: "0 20px 40px rgba(16,185,129,0.3)"
-                        }}>
-                            <Check size={40} strokeWidth={3} />
-                        </div>
-                        <h2 style={{ fontSize: 32, fontWeight: 900, color: "var(--color-text)", marginBottom: 16, letterSpacing: "-0.03em" }}>You're Live!</h2>
-                        <p style={{ fontSize: 16, color: "var(--color-secondary)", lineHeight: 1.6, marginBottom: 32 }}>
-                            Payment confirmed. <b>{startupName}</b> is now visible to all potential buyers in the marketplace.
-                        </p>
-                        <button 
-                            type="button"
-                            onClick={onClose}
-                            style={{
-                                width: "100%", background: "var(--color-surface)",
-                                color: "var(--color-text)", border: "1px solid var(--color-border)",
-                                borderRadius: 18, padding: "18px", fontSize: 16, fontWeight: 700,
-                                cursor: "pointer", boxShadow: "var(--shadow-card)"
-                            }}
-                        >
-                            Back to Dashboard
-                        </button>
-                        <div style={{ marginTop: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--color-accent)", fontWeight: 700, fontSize: 13 }}>
-                            <Sparkles size={16} />
-                            <span>Priority placement active</span>
-                        </div>
-                    </div>
-                )}
+                </div>
             </div>
 
             <style dangerouslySetInnerHTML={{ __html: `
@@ -310,70 +232,5 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
             `}} />
         </div>,
         document.body
-    );
-}
-
-function CheckoutForm({ startupId, onProcessing, isProcessing }: { startupId: string, onProcessing: (v: boolean) => void, isProcessing: boolean }) {
-    const stripe = useStripe();
-    const elements = useElements();
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-    const handleSubmit = async (event: React.FormEvent) => {
-        event.preventDefault();
-
-        if (!stripe || !elements) return;
-
-        onProcessing(true);
-
-        const { error } = await stripe.confirmPayment({
-            elements,
-            confirmParams: {
-                // We don't actually want a redirect if we can help it, 
-                // but Stripe requires one for some payment methods.
-                // We'll handle the "instant" case via Realtime.
-                return_url: `${window.location.origin}/dashboard/startups?id=${startupId}&payment=processing`,
-            },
-            redirect: "if_required",
-        });
-
-        if (error) {
-            setErrorMessage(error.message || "An unexpected error occurred.");
-            onProcessing(false);
-        } else {
-            // Success! The Realtime listener will pick up the DB changes.
-            // We just stay in the loading state until Realtime triggers step="success".
-        }
-    };
-
-    return (
-        <form onSubmit={handleSubmit}>
-            <PaymentElement options={{ layout: "tabs" }} />
-            {errorMessage && <div style={{ color: "#ef4444", fontSize: 13, marginTop: 12, fontWeight: 500 }}>{errorMessage}</div>}
-            <button 
-                type="submit" 
-                disabled={isProcessing || !stripe || !elements}
-                style={{
-                    width: "100%",
-                    background: "linear-gradient(135deg, #7da2ff 0%, #5b7cff 45%, #4465f5 100%)",
-                    color: "white", border: "none", borderRadius: 18,
-                    padding: "20px", fontSize: 16, fontWeight: 800,
-                    cursor: (isProcessing || !stripe) ? "not-allowed" : "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    gap: 12, marginTop: 32, transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                    opacity: isProcessing ? 0.7 : 1,
-                    boxShadow: "0 16px 30px rgba(91, 124, 255, 0.25)",
-                    minHeight: 60, boxSizing: "border-box"
-                }}
-            >
-                {isProcessing ? (
-                    <>
-                        <Loader2 size={20} className="animate-spin" />
-                        Verifying...
-                    </>
-                ) : (
-                    `Pay $0.50 & List Startup`
-                )}
-            </button>
-        </form>
     );
 }

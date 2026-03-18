@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
 
-const isDev = process.env.NODE_ENV !== "production";
-
 function getStripe() {
-    return new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2026-02-25.clover" as any,
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) throw new Error("STRIPE_SECRET_KEY is not set");
+    return new Stripe(key, {
+        apiVersion: "2025-01-27.acacia" as any,
     });
 }
 
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
         // Verify ownership
         const { data: startup, error } = await supabase
             .from("startups")
-            .select("id, name")
+            .select("id, name, listing_paid")
             .eq("id", startupId)
             .eq("owner_id", user.id)
             .single();
@@ -37,34 +37,49 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Startup not found or unauthorized" }, { status: 404 });
         }
 
-        const session = await getStripe().checkout.sessions.create({
+        const startupData = startup as any;
+
+        if (startupData.listing_paid) {
+            return NextResponse.json({ error: "Listing fee already paid for this startup" }, { status: 400 });
+        }
+
+        const stripe = getStripe();
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+        const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
             line_items: [
                 {
                     price_data: {
                         currency: "usd",
                         product_data: {
-                            name: `Listing Fee for ${startup.name}`,
-                            description: "One-time payment to list your startup for sale on ProvenMRR.",
+                            name: `ProvenMRR Listing Fee`,
+                            description: `List "${startupData.name}" in the marketplace for sale. Priority placement for 30 days.`,
+                            images: [],
                         },
-                        unit_amount: 10, // $0.10
+                        unit_amount: 50, // $0.50
                     },
                     quantity: 1,
                 },
             ],
             mode: "payment",
-            success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/startups?id=${startupId}&payment=success`,
-            cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/startups?id=${startupId}&payment=cancel`,
+            success_url: `${appUrl}/dashboard/startups?id=${startupId}&payment=success&session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${appUrl}/dashboard/startups?id=${startupId}&payment=cancel`,
+            customer_email: user.email,
             metadata: {
                 startup_id: startupId,
                 user_id: user.id,
+                type: "listing_fee",
             },
-            customer_email: user.email,
         });
 
-        return NextResponse.json({ url: session.url });
+        return NextResponse.json({ url: session.url, sessionId: session.id });
     } catch (err: any) {
-        if (process.env.NODE_ENV !== "production") console.error("[Stripe Checkout Error]:", err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        console.error("[Stripe Checkout Error]:", err?.message, err?.code, err?.type);
+        return NextResponse.json({
+            error: err.message,
+            code: err?.code,
+            type: err?.type,
+        }, { status: 500 });
     }
 }
