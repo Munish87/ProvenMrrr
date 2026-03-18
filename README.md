@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ProvenMRR
+
+**The marketplace for verified SaaS revenue.**
+
+ProvenMRR lets founders connect Stripe, verify their MRR, and get an AI Health Score. Buyers and investors can discover real startups with transparent metrics, make offers, and find co-founders.
+
+## Tech Stack
+
+- **Framework**: [Next.js 15](https://nextjs.org) (App Router)
+- **Database**: [Supabase](https://supabase.com) (Postgres + RLS + Edge Functions)
+- **Payments**: [Stripe](https://stripe.com) (Checkout + Webhooks)
+- **Email**: [Resend](https://resend.com) via Supabase Edge Function relay
+- **Styling**: Vanilla CSS (global design system in `app/globals.css`)
 
 ## Getting Started
 
-First, run the development server:
+Copy the environment template and fill in your secrets:
+
+```bash
+cp .env.local.example .env.local
+```
+
+Then run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+See `.env.local.example` for all required variables:
 
-## Learn More
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server only) |
+| `ENCRYPTION_KEY` | 32-byte AES-256-GCM key (hex) for encrypting Stripe API keys |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key |
+| `STRIPE_SECRET_KEY` | Stripe secret key |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
+| `NEXT_PUBLIC_APP_URL` | Production domain (e.g. `https://provenmrr.com`) |
+| `CRON_SECRET` | Secret for authorizing cron-triggered API routes |
 
-To learn more about Next.js, take a look at the following resources:
+## Deployment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Deploy on [Vercel](https://vercel.com). Set all environment variables in the Vercel dashboard. Make sure to register your production Stripe webhook endpoint pointing to:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+https://provenmrr.com/api/webhooks/stripe
+```
+"# ProvenMrrr" 
