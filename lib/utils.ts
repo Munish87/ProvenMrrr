@@ -6,12 +6,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number, currency = "USD"): string {
-    return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency,
-        notation: "compact",
-        maximumFractionDigits: 1,
-    }).format(amount);
+    const formatted = Math.round(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(1)}M`;
+    if (amount >= 1_000) return `$${Math.round(amount / 1_000)}k`;
+    return `$${formatted}`;
 }
 
 export function formatPercent(value: number, decimals = 1): string {

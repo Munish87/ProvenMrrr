@@ -3,6 +3,7 @@ import type { RawStripeData } from "./fetcher";
 export interface ComputedMetrics {
     mrr: number;
     arr: number;
+    last30DaysRevenue: number; // Gross revenue from the last 30 days
     allTimeRevenue: number; // Sum of all historical succeeded charge amounts
     momGrowthRate: number; // month-over-month % change
     churnRate: number; // monthly % of subscriptions cancelled
@@ -129,6 +130,7 @@ export function computeMetrics(data: RawStripeData): ComputedMetrics {
     return {
         mrr,
         arr,
+        last30DaysRevenue: thisMonthRevenue,
         allTimeRevenue,
         momGrowthRate,
         churnRate,

@@ -4,9 +4,13 @@ import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
-const stripe = new Stripe(process.env.STRIPE_AD_WEBHOOK_SECRET ?? process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2026-02-25.clover",
-});
+const isDev = process.env.NODE_ENV !== "production";
+
+function getStripeClient() {
+    return new Stripe(process.env.STRIPE_SECRET_KEY!, {
+        apiVersion: "2023-10-16" as any,
+    });
+}
 
 function getAdminClient() {
     return createClient(
@@ -20,7 +24,7 @@ export async function POST(request: NextRequest) {
     const webhookSecret = process.env.STRIPE_AD_WEBHOOK_SECRET;
 
     if (!signature || !webhookSecret) {
-        console.error("[ad-webhook] Missing signature or secret");
+        if (isDev) console.error("[ad-webhook] Missing signature or secret");
         return NextResponse.json({ error: "Not configured" }, { status: 400 });
     }
 
@@ -28,9 +32,9 @@ export async function POST(request: NextRequest) {
     let event: Stripe.Event;
 
     try {
-        event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+        event = getStripeClient().webhooks.constructEvent(rawBody, signature, webhookSecret);
     } catch (err) {
-        console.error("[ad-webhook] Invalid signature:", err);
+        if (isDev) console.error("[ad-webhook] Invalid signature:", err);
         return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
@@ -39,7 +43,7 @@ export async function POST(request: NextRequest) {
         const { advertiser_id, plan_type, expires_days } = session.metadata ?? {};
 
         if (!advertiser_id) {
-            console.warn("[ad-webhook] No advertiser_id in metadata — ignored");
+            if (isDev) console.warn("[ad-webhook] No advertiser_id in metadata — ignored");
             return NextResponse.json({ received: true });
         }
 
@@ -58,11 +62,11 @@ export async function POST(request: NextRequest) {
             .eq("id", advertiser_id);
 
         if (error) {
-            console.error("[ad-webhook] DB update failed:", error.message);
+            if (isDev) console.error("[ad-webhook] DB update failed:", error.message);
             return NextResponse.json({ error: "DB update failed" }, { status: 500 });
         }
 
-        console.log(`[ad-webhook] Advertiser ${advertiser_id} activated (${plan_type}, expires ${expiresAt.toDateString()})`);
+        if (isDev) console.log(`[ad-webhook] Advertiser ${advertiser_id} activated (${plan_type}, expires ${expiresAt.toDateString()})`);
     }
 
     return NextResponse.json({ received: true });

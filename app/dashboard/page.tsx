@@ -2,11 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils";
 import { redirect } from "next/navigation";
 import { HealthScoreBadge } from "@/components/startup/HealthScoreBadge";
+import { DashboardStartupRow } from "@/components/startup/DashboardStartupRow";
 import { TrendingUp, Building2, Zap, ArrowRight, Plus, Heart, Send, Globe } from "lucide-react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 
-export const metadata = { title: "Dashboard — Vetra" };
+export const metadata = { title: "Dashboard — ProvenMRR" };
 
 export default async function DashboardPage() {
     const supabase = await createClient();
@@ -48,10 +49,10 @@ export default async function DashboardPage() {
         return (
             <div style={{ maxWidth: 900 }}>
                 <div style={{ marginBottom: 32 }}>
-                    <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-0.3px", marginBottom: 4 }}>
+                    <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-1px", marginBottom: 6 }}>
                         Acquisition Dashboard 🔍
                     </h1>
-                    <p style={{ fontSize: 14, color: "var(--color-secondary)" }}>Manage your saved startups and active offers.</p>
+                    <p style={{ fontSize: 14, color: "var(--color-secondary)", fontWeight: 500 }}>Manage your saved startups and active offers.</p>
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 32 }}>
@@ -61,15 +62,15 @@ export default async function DashboardPage() {
                                 <p className="metric-label">{label}</p>
                                 <Icon size={16} color={iconColor} />
                             </div>
-                            <p style={{ fontSize: 28, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-0.5px" }}>{value}</p>
+                            <p style={{ fontSize: 32, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-1px" }}>{value}</p>
                         </div>
                     ))}
                 </div>
 
                 <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--color-border)" }}>
-                        <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text)" }}>Pinned on Watchlist</h2>
-                        <Link href="/dashboard/interested" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: "var(--color-accent)", fontWeight: 600, textDecoration: "none" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
+                        <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--color-text)", letterSpacing: "0.02em", textTransform: "uppercase" }}>Pinned on Watchlist</h2>
+                        <Link href="/dashboard/interested" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: "var(--color-accent)", fontWeight: 700, textDecoration: "none" }}>
                             View all <ArrowRight size={14} />
                         </Link>
                     </div>
@@ -99,7 +100,7 @@ export default async function DashboardPage() {
                                                 {startup.name.charAt(0)}
                                             </div>
                                             <div>
-                                                <p style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)" }}>{startup.name}</p>
+                                                <p style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text)" }}>{startup.name}</p>
                                                 <p style={{ fontSize: 12, color: "var(--color-secondary)", marginTop: 1 }}>
                                                     {startup.is_verified ? "✓ Verified" : "Not verified"} · Listed for Sale
                                                 </p>
@@ -129,20 +130,20 @@ export default async function DashboardPage() {
                         <div>
                             {sentOffers!.map((offer) => (
                                 <Link key={offer.id} href={`/dashboard/sent-offers`} style={{ textDecoration: "none", display: "block" }}>
-                                    <div className="hover:bg-gray-50" style={{
+                                    <div className="hover:bg-white/[0.03]" style={{
                                         display: "flex",
                                         alignItems: "center",
                                         justifyContent: "space-between",
-                                        padding: "14px 20px",
-                                        borderBottom: "1px solid var(--color-border)",
-                                        transition: "background 0.12s",
+                                        padding: "16px 24px",
+                                        borderBottom: "1px solid rgba(255,255,255,0.05)",
+                                        transition: "all 0.2s",
                                     }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                                             <div className="startup-card-logo" style={{ width: 32, height: 32, fontSize: 12 }}>
                                                 {(sentStartupMap.get(offer.startup_id) || "U").charAt(0)}
                                             </div>
                                             <div>
-                                                <p style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)" }}>{sentStartupMap.get(offer.startup_id) || "Project"}</p>
+                                                <p style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text)" }}>{sentStartupMap.get(offer.startup_id) || "Project"}</p>
                                                 <p style={{ fontSize: 12, color: "var(--color-secondary)", marginTop: 1 }}>
                                                     ${Number(offer.amount).toLocaleString()} · {offer.status}
                                                 </p>
@@ -205,10 +206,10 @@ export default async function DashboardPage() {
         <div style={{ maxWidth: 900 }}>
             {/* Page header */}
             <div style={{ marginBottom: 32 }}>
-                <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-0.3px", marginBottom: 4 }}>
+                <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-1px", marginBottom: 6 }}>
                     Welcome back 👋
                 </h1>
-                <p style={{ fontSize: 14, color: "var(--color-secondary)" }}>Here&apos;s your portfolio overview.</p>
+                <p style={{ fontSize: 14, color: "var(--color-secondary)", fontWeight: 500 }}>Here&apos;s your portfolio overview.</p>
             </div>
 
             {/* Stats row */}
@@ -219,16 +220,16 @@ export default async function DashboardPage() {
                             <p className="metric-label">{label}</p>
                             <Icon size={16} color={iconColor} />
                         </div>
-                        <p style={{ fontSize: 28, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-0.5px" }}>{value}</p>
+                        <p style={{ fontSize: 32, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-1px" }}>{value}</p>
                     </div>
                 ))}
             </div>
 
             {/* Startups list */}
             <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--color-border)" }}>
-                    <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text)" }}>Your Startups</h2>
-                    <Link href="/dashboard/startups" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: "var(--color-accent)", fontWeight: 600, textDecoration: "none" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
+                    <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--color-text)", letterSpacing: "0.02em", textTransform: "uppercase" }}>Your Startups</h2>
+                    <Link href="/dashboard/startups" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: "var(--color-accent)", fontWeight: 700, textDecoration: "none" }}>
                         Manage <ArrowRight size={14} />
                     </Link>
                 </div>
@@ -247,36 +248,12 @@ export default async function DashboardPage() {
                             const score = scoreMap.get(startup.id);
                             const snap = snapMap.get(startup.id);
                             return (
-                                <Link key={startup.id} href={`/dashboard/startups?id=${startup.id}`} style={{ textDecoration: "none", display: "block" }}>
-                                    <div className="hover:bg-gray-50" style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "space-between",
-                                        padding: "14px 20px",
-                                        borderBottom: "1px solid var(--color-border)",
-                                        transition: "background 0.12s",
-                                    }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                                            <div className="startup-card-logo" style={{ width: 36, height: 36, fontSize: 14 }}>
-                                                {startup.name.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <p style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)" }}>{startup.name}</p>
-                                                <p style={{ fontSize: 12, color: "var(--color-secondary)", marginTop: 1 }}>
-                                                    {startup.is_verified ? "✓ Verified" : "Not verified"}
-                                                    {snap ? ` · MRR ${formatCurrency(snap.mrr)}` : ""}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        {score !== undefined ? (
-                                            <HealthScoreBadge score={score} size="sm" />
-                                        ) : (
-                                            <span style={{ fontSize: 12, color: "var(--color-secondary)", fontWeight: 500, padding: "4px 10px", border: "1px solid var(--color-border)", borderRadius: 6 }}>
-                                                Connect Stripe
-                                            </span>
-                                        )}
-                                    </div>
-                                </Link>
+                                <DashboardStartupRow 
+                                    key={startup.id} 
+                                    startup={startup} 
+                                    score={score} 
+                                    snap={snap} 
+                                />
                             );
                         })}
                     </div>

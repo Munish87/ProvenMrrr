@@ -1,110 +1,106 @@
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
+import { useEffect, useState } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { HealthScoreBadge } from "@/components/startup/HealthScoreBadge";
-import { Heart, Building2, ExternalLink } from "lucide-react";
+import { Heart, Building2, ChevronRight, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { removeBuyerInteraction, getInterestedStartups } from "@/app/actions/matchmaking";
 
-export const metadata = { title: "Interested Startups — Vetra" };
+export default function InterestedPage() {
+    const [startups, setStartups] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-export default async function InterestedPage() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const fetchMatches = async () => {
+        try {
+            const data = await getInterestedStartups();
+            if (data.success) {
+                setStartups(data.matches || []);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-    // 1. Fetch watchlists for the user
-    const { data: watchlists } = await supabase
-        .from("watchlists")
-        .select("startup_id")
-        .eq("user_id", user!.id);
+    useEffect(() => {
+        fetchMatches();
+    }, []);
 
-    const startupIds = (watchlists ?? []).map((w) => w.startup_id);
+    const handleRemove = async (e: React.MouseEvent, startupId: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Optimistic update
+        setStartups(prev => prev.filter(s => s.startup.id !== startupId));
+        await removeBuyerInteraction(startupId);
+    };
 
-    // 2. Fetch those startups
-    const { data: startups } = await supabase
-        .from("startups")
-        .select("id, name, is_verified, is_listed_for_sale, category")
-        .in("id", startupIds.length > 0 ? startupIds : ["none"])
-        .returns<{ id: string; name: string; is_verified: boolean; is_listed_for_sale: boolean; category: string | null }[]>();
-
-    // 3. Fetch snapshots and health scores for stats
-    const { data: snapshots } = await supabase
-        .from("revenue_snapshots")
-        .select("startup_id, mrr, growth_rate")
-        .in("startup_id", startupIds.length > 0 ? startupIds : ["none"])
-        .order("snapshot_date", { ascending: false })
-        .returns<{ startup_id: string; mrr: number; growth_rate: number }[]>();
-
-    const { data: healthScores } = await supabase
-        .from("health_scores")
-        .select("startup_id, score")
-        .in("startup_id", startupIds.length > 0 ? startupIds : ["none"])
-        .order("created_at", { ascending: false })
-        .returns<{ startup_id: string; score: number }[]>();
-
-    const snapMap = new Map<string, { mrr: number; growth_rate: number }>();
-    for (const sn of snapshots ?? []) if (!snapMap.has(sn.startup_id)) snapMap.set(sn.startup_id, sn);
-
-    const scoreMap = new Map<string, number>();
-    for (const hs of healthScores ?? []) if (!scoreMap.has(hs.startup_id)) scoreMap.set(hs.startup_id, hs.score);
+    if (isLoading) {
+        return <div style={{ padding: 80, textAlign: "center", color: "var(--color-secondary)", fontWeight: 600 }}>Loading matches...</div>;
+    }
 
     return (
         <div style={{ maxWidth: 900 }}>
             {/* Page header */}
             <div style={{ marginBottom: 32 }}>
-                <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-0.3px", marginBottom: 4 }}>
-                    Interested Startups
+                <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-0.5px", marginBottom: 6 }}>
+                    Your Matches
                 </h1>
-                <p style={{ fontSize: 14, color: "var(--color-secondary)" }}>Startups you are tracking for potential acquisition.</p>
+                <p style={{ fontSize: 14, color: "var(--color-secondary)", fontWeight: 500 }}>Startups you swiped right on.</p>
             </div>
 
             {/* Startups list */}
             <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--color-border)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
                     <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text)", display: "flex", alignItems: "center", gap: 8 }}>
                         <Heart size={16} color="var(--color-accent)" fill="var(--color-accent)" />
-                        Saved on Watchlist
+                        Matches
                     </h2>
-                    <Link href="/browse" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: "var(--color-accent)", fontWeight: 600, textDecoration: "none" }}>
-                        Browse More <ExternalLink size={14} />
+                    <Link href="/dashboard/matchmaking" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: "var(--color-accent)", fontWeight: 600, textDecoration: "none" }}>
+                        Swipe More <ChevronRight size={14} />
                     </Link>
                 </div>
 
-                {(startups ?? []).length === 0 ? (
+                {startups.length === 0 ? (
                     <div style={{ textAlign: "center", padding: "56px 24px" }}>
-                        <Heart size={32} color="var(--color-border)" style={{ margin: "0 auto 12px" }} />
-                        <p style={{ color: "var(--color-secondary)", marginBottom: 20, fontSize: 14 }}>You haven't bookmarked any startups yet.</p>
-                        <Link href="/browse" className="btn btn-primary">
+                        <Heart size={40} color="var(--color-secondary)" style={{ opacity: 0.1, margin: "0 auto 16px" }} strokeWidth={1} />
+                        <p style={{ color: "var(--color-secondary)", marginBottom: 24, fontSize: 15, fontWeight: 600 }}>You haven&apos;t matched with any startups yet.</p>
+                        <Link href="/dashboard/matchmaking" className="btn btn-primary">
                             Discover Startups
                         </Link>
                     </div>
                 ) : (
                     <div>
-                        {(startups ?? []).map((startup) => {
-                            const snap = snapMap.get(startup.id);
-                            const score = scoreMap.get(startup.id);
+                        {startups.map((match) => {
+                            const { startup, snapshot, score } = match;
                             return (
                                 <Link key={startup.id} href={`/startup/${startup.id}`} style={{ textDecoration: "none", display: "block" }}>
-                                    <div className="hover:bg-gray-50" style={{
+                                    <div style={{
                                         display: "flex",
                                         alignItems: "center",
                                         justifyContent: "space-between",
-                                        padding: "16px 20px",
-                                        borderBottom: "1px solid var(--color-border)",
-                                        transition: "background 0.12s",
+                                        padding: "20px 24px",
+                                        borderBottom: "1px solid rgba(0,0,0,0.05)",
+                                        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                                     }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                                            <div className="startup-card-logo" style={{ width: 44, height: 44, fontSize: 18, borderRadius: 10 }}>
-                                                {startup.name.charAt(0)}
+                                            <div className="startup-card-logo" style={{ width: 44, height: 44, fontSize: 18, borderRadius: 10, filter: startup.is_anonymous ? "blur(5px)" : "none" }}>
+                                                {startup.logo_url ? (
+                                                    <img src={startup.logo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: startup.is_anonymous ? "blur(8px)" : "none" }} />
+                                                ) : startup.name.charAt(0)}
                                             </div>
                                             <div>
                                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                                                    <p style={{ fontSize: 15, fontWeight: 700, color: "var(--color-text)" }}>{startup.name}</p>
+                                                    <p style={{ fontSize: 15, fontWeight: 700, color: "var(--color-text)", filter: startup.is_anonymous ? "blur(6px)" : "none" }}>{startup.name}</p>
                                                     {startup.is_listed_for_sale && (
-                                                        <span style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", background: "#DCFCE7", padding: "2px 6px", borderRadius: 4, textTransform: "uppercase" }}>For Sale</span>
+                                                        <span style={{ fontSize: 10, fontWeight: 700, color: "var(--color-accent)", background: "rgba(99, 102, 241, 0.05)", padding: "2px 8px", borderRadius: 6, textTransform: "uppercase", border: "1px solid rgba(99, 102, 241, 0.1)" }}>For Sale</span>
                                                     )}
                                                 </div>
-                                                <p style={{ fontSize: 13, color: "var(--color-secondary)", display: "flex", alignItems: "center", gap: 6 }}>
+                                                <p style={{ fontSize: 13, color: "var(--color-secondary)", display: "flex", alignItems: "center", gap: 6, fontWeight: 500 }}>
                                                     {startup.category || "Software"}
-                                                    {startup.is_verified && <span style={{ color: "#3B82F6", fontWeight: 600 }}>· Verified</span>}
+                                                    {startup.is_verified && <span style={{ color: "var(--color-accent)", fontWeight: 700 }}>· Verified</span>}
                                                 </p>
                                             </div>
                                         </div>
@@ -112,19 +108,39 @@ export default async function InterestedPage() {
                                         <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
                                             {/* MRR Column */}
                                             <div style={{ textAlign: "right", minWidth: 80 }}>
-                                                <p style={{ fontSize: 11, fontWeight: 600, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>MRR</p>
-                                                <p style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text)" }}>{snap ? formatCurrency(snap.mrr) : "—"}</p>
+                                                <p style={{ fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>MRR</p>
+                                                <p style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text)" }}>{snapshot ? formatCurrency(snapshot.mrr) : "—"}</p>
                                             </div>
 
                                             {/* Health Score Column */}
                                             <div style={{ textAlign: "right", width: 80, display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                                                <p style={{ fontSize: 11, fontWeight: 600, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Health</p>
+                                                <p style={{ fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Health</p>
                                                 {score !== undefined ? (
                                                     <HealthScoreBadge score={score} size="sm" />
                                                 ) : (
                                                     <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-secondary)" }}>—</span>
                                                 )}
                                             </div>
+
+                                            {/* Remove Button */}
+                                            <button 
+                                                onClick={(e) => handleRemove(e, startup.id)}
+                                                className="btn-icon-hover-red"
+                                                style={{
+                                                    background: "transparent",
+                                                    border: "none",
+                                                    color: "var(--color-secondary)",
+                                                    cursor: "pointer",
+                                                    padding: 8,
+                                                    borderRadius: "12px",
+                                                    transition: "all 0.2s",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center"
+                                                }}
+                                            >
+                                                <Trash2 size={18} strokeWidth={2.5} />
+                                            </button>
                                         </div>
                                     </div>
                                 </Link>

@@ -1,0 +1,47 @@
+{
+  "interactions": [
+    {
+      "id": "df87edd6-02e6-4d99-b01e-d578600085e7",
+      "user_id": "65f3bec2-5997-4ce6-b502-40aea33778b1",
+      "startup_id": "aa27804b-a53f-46ef-b663-58fb6baa3c5c",
+      "interaction_type": "skipped",
+      "created_at": "2026-03-11T21:45:06.203+00:00"
+    },
+    {
+      "id": "766081f5-4f12-45f8-9cda-42a9174e3485",
+      "user_id": "65f3bec2-5997-4ce6-b502-40aea33778b1",
+      "startup_id": "c1e78e30-0ad2-4912-9d17-1d36c72f8d98",
+      "interaction_type": "skipped",
+      "created_at": "2026-03-11T21:45:29.07+00:00"
+    },
+    {
+      "id": "90aa1c08-6821-4d9e-a3e6-14d8d27fc147",
+      "user_id": "65f3bec2-5997-4ce6-b502-40aea33778b1",
+      "startup_id": "f212ea97-c7c7-4936-8525-4b492541628a",
+      "interaction_type": "skipped",
+      "created_at": "2026-03-11T21:45:45.577+00:00"
+    }
+  ],
+  "startups": [
+    {
+      "id": "1652f1f9-239b-404b-91b9-b8b0527b3a36",
+      "name": "Unclaimed Startup",
+      "is_listed_for_sale": false
+    },
+    {
+      "id": "f212ea97-c7c7-4936-8525-4b492541628a",
+      "name": "Hungryfilmcreator",
+      "is_listed_for_sale": true
+    },
+    {
+      "id": "c1e78e30-0ad2-4912-9d17-1d36c72f8d98",
+      "name": "Lemonsqueezy Verified Startup",
+      "is_listed_for_sale": true
+    },
+    {
+      "id": "aa27804b-a53f-46ef-b663-58fb6baa3c5c",
+      "name": "Unclaimed Startup",
+      "is_listed_for_sale": true
+    }
+  ]
+}

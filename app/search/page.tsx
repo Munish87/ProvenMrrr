@@ -3,7 +3,7 @@ import { Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
-    title: "Search Verified Startups — Vetra",
+    title: "Search Verified Startups — ProvenMRR",
     description: "Search the database of verified startup revenues, MRR, and valuations.",
 };
 
@@ -19,13 +19,8 @@ export default async function SearchPage() {
                     <div style={{ display: "flex", gap: 32, alignItems: "center" }}>
                         <Link href="/" style={{ fontWeight: 800, fontSize: 18, color: "var(--color-text)", textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
                             <div style={{ width: 8, height: 8, background: "#6366F1", borderRadius: "50%" }} />
-                            Vetra
+                            ProvenMRR
                         </Link>
-                        <nav style={{ display: "flex", gap: 24 }}>
-                            <Link href="/browse" className="nav-link">Browse</Link>
-                            <Link href="/leaderboard" className="nav-link">Leaderboard</Link>
-                            <Link href="/co-founders" className="nav-link">Co-founders</Link>
-                        </nav>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         {!user ? (

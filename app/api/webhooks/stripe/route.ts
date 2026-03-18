@@ -16,106 +16,121 @@ function getAdminClient() {
     );
 }
 
+const isDev = process.env.NODE_ENV !== "production";
+
 export async function POST(request: NextRequest) {
     const signature = request.headers.get("stripe-signature");
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
     if (!signature || !webhookSecret) {
         return NextResponse.json({ error: "Webhook not configured" }, { status: 400 });
     }
 
+    // ── Use STRIPE_SECRET_KEY for the Stripe client (not the webhook secret) ──
+    const stripe = new Stripe(stripeSecretKey || webhookSecret, {
+        apiVersion: "2026-02-25.clover" as any,
+    });
+
     let event: Stripe.Event;
     const rawBody = await request.text();
 
     try {
-        const stripe = new Stripe(webhookSecret, {
-            apiVersion: "2026-02-25.clover",
-        });
         event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
     } catch (err) {
-        console.error("[webhook] Invalid signature:", err);
+        if (isDev) console.error("[webhook] Invalid signature:", err);
         return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
     const admin = getAdminClient();
 
     switch (event.type) {
+        case "checkout.session.completed": {
+            const session = event.data.object as Stripe.Checkout.Session;
+            const startupId = session.metadata?.startup_id;
+
+            if (startupId) {
+                if (isDev) console.log(`[webhook] Listing fee paid for startup: ${startupId}`);
+                const { error } = await admin
+                    .from("startups")
+                    .update({
+                        listing_fee_paid: true,
+                        is_listed_for_sale: true,
+                    })
+                    .eq("id", startupId);
+
+                if (error && isDev) {
+                    console.error(`[webhook] Error updating startup ${startupId}:`, error.message);
+                }
+            }
+            break;
+        }
+
         case "invoice.paid": {
             const invoice = event.data.object as Stripe.Invoice;
-            const customerId = invoice.customer as string;
 
-            const { data: connections } = await admin
+            // Get the Stripe account ID from the event (present in Connect events)
+            const accountId: string | null = (event as any).account ?? null;
+
+            // Fetch only the matching connection if we have an account ID,
+            // otherwise fall back to syncing all — guarded by max 50 to cap blast radius.
+            let query = admin
                 .from("stripe_connections")
-                .select("startup_id, encrypted_api_key");
+                .select("startup_id, encrypted_api_key, stripe_account_id");
 
-            if (connections) {
-                for (const conn of connections as { startup_id: string; encrypted_api_key: string }[]) {
+            if (accountId) {
+                query = query.eq("stripe_account_id", accountId) as any;
+            } else {
+                query = query.limit(50) as any;
+            }
+
+            const { data: connections, error: connError } = await query;
+
+            if (connError || !connections || connections.length === 0) {
+                if (isDev) console.warn("[webhook] No connections found for invoice.paid");
+                return NextResponse.json({ received: true });
+            }
+
+            for (const connection of connections) {
+                try {
+                    const apiKey = decryptApiKey(connection.encrypted_api_key);
+                    const connStripe = new Stripe(apiKey, { apiVersion: "2026-02-25.clover" as any });
+
+                    let subs: Stripe.Subscription[] = [];
+                    let charges: Stripe.Charge[] = [];
+
                     try {
-                        const apiKey = decryptApiKey(conn.encrypted_api_key);
-                        const stripe = new Stripe(apiKey, { apiVersion: "2026-02-25.clover" });
+                        subs = await connStripe.subscriptions
+                            .list({ limit: 100, status: "all", expand: ["data.items"] })
+                            .autoPagingToArray({ limit: 1000 });
+                    } catch (err: any) {
+                        if (isDev) console.warn(`[webhook] Skipping subscriptions for ${connection.startup_id}:`, err.message);
+                        continue;
+                    }
 
-                        let subs: Stripe.Subscription[] = [];
-                        let charges: Stripe.Charge[] = [];
+                    try {
+                        charges = await connStripe.charges
+                            .list({ limit: 100 })
+                            .autoPagingToArray({ limit: 2000 });
+                    } catch (err: any) {
+                        if (isDev) console.warn(`[webhook] Skipping charges for ${connection.startup_id}:`, err.message);
+                    }
 
-                        try {
-                            subs = await stripe.subscriptions.list({ limit: 100, status: "all", expand: ["data.items"] }).autoPagingToArray({ limit: 1000 });
-                        } catch (err: any) {
-                            console.warn(`[webhook] Skipping subscriptions fetch for ${conn.startup_id}:`, err.message);
-                        }
+                    const metrics = computeMetrics({
+                        subscriptions: subs,
+                        charges,
+                        name: "Syncing...",
+                        logo: null,
+                        founded_date: null,
+                        country: null,
+                        website_url: null,
+                    });
+                    const healthResult = calculateHealthScore(metrics as any);
 
-                        try {
-                            charges = await stripe.charges.list({ limit: 100 }).autoPagingToArray({ limit: 2000 });
-                        } catch (err: any) {
-                            console.warn(`[webhook] Skipping charges fetch for ${conn.startup_id}:`, err.message);
-                        }
-
-                        if (subs.length === 0 && charges.length === 0) {
-                            try {
-                                await stripe.products.list({ limit: 1 });
-                            } catch {
-                                break; // The API key is defunct entirely, so skip this iteration.
-                            }
-                        }
-
-                        let name = "Stripe Startup";
-                        let logo: string | null = null;
-                        let founded_date: string | null = null;
-
-                        try {
-                            const account = await stripe.accounts.retrieve();
-                            if (account.created) {
-                                founded_date = new Date(account.created * 1000).toISOString();
-                            }
-                            if (account.business_profile?.name) {
-                                name = account.business_profile.name;
-                            } else if (account.settings?.dashboard?.display_name) {
-                                name = account.settings.dashboard.display_name;
-                            }
-                        } catch {
-                            if (subs.length > 0 || charges.length > 0) {
-                                try {
-                                    const products = (await stripe.products.list({ limit: 10, active: true })).data;
-                                    if (products.length > 0) {
-                                        name = products[0].name;
-                                        logo = products[0].images?.[0] || null;
-                                    }
-                                } catch {
-                                    // Skip fetching metadata on webhook edge cases missing product privileges
-                                }
-                            }
-                        }
-
-                        const metrics = computeMetrics({
-                            subscriptions: subs,
-                            charges,
-                            name,
-                            logo,
-                            founded_date,
-                        });
-                        const healthResult = calculateHealthScore(metrics);
-
-                        await admin.from("revenue_snapshots").insert({
-                            startup_id: conn.startup_id,
+                    // Upsert snapshot for today (prevents duplicate rows)
+                    await admin.from("revenue_snapshots").upsert(
+                        {
+                            startup_id: connection.startup_id,
                             mrr: metrics.mrr,
                             arr: metrics.arr,
                             all_time_revenue: metrics.allTimeRevenue,
@@ -125,31 +140,51 @@ export async function POST(request: NextRequest) {
                             customer_count: metrics.customerCount,
                             refund_rate: metrics.refundRate,
                             snapshot_date: new Date().toISOString().split("T")[0],
-                        });
+                        },
+                        { onConflict: "startup_id,snapshot_date", ignoreDuplicates: false }
+                    );
 
-                        await admin.from("health_scores").insert({
-                            startup_id: conn.startup_id,
-                            score: healthResult.score,
-                            risk_level: healthResult.riskLevel,
-                            ai_summary: healthResult.aiSummary,
-                        });
+                    await admin.from("health_scores").insert({
+                        startup_id: connection.startup_id,
+                        score: healthResult.score,
+                        risk_level: healthResult.riskLevel,
+                        ai_summary: healthResult.aiSummary,
+                    });
+                } catch (err) {
+                    if (isDev) console.error(`[webhook] Error processing sync for ${connection.startup_id}:`, err);
+                }
+            }
+            break;
+        }
 
-                        break;
-                    } catch {
-                        // Key doesn't match this customer; continue
-                    }
+        case "payment_intent.succeeded": {
+            const pi = event.data.object as Stripe.PaymentIntent;
+            const startupId = pi.metadata?.startup_id;
+
+            if (startupId) {
+                if (isDev) console.log(`[webhook] PaymentIntent succeeded for startup: ${startupId}`);
+                const { error } = await admin
+                    .from("startups")
+                    .update({
+                        listing_fee_paid: true,
+                        is_listed_for_sale: true,
+                    })
+                    .eq("id", startupId);
+
+                if (error && isDev) {
+                    console.error(`[webhook] Error updating startup ${startupId}:`, error.message);
                 }
             }
             break;
         }
 
         case "customer.subscription.deleted": {
-            console.log("[webhook] Subscription deleted:", event.data.object.id);
+            if (isDev) console.log("[webhook] Subscription deleted:", event.data.object.id);
             break;
         }
 
         default:
-            console.log(`[webhook] Unhandled event: ${event.type}`);
+            if (isDev) console.log(`[webhook] Unhandled event: ${event.type}`);
     }
 
     return NextResponse.json({ received: true });

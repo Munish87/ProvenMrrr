@@ -1,5 +1,5 @@
 -- ============================================================
--- Vetra: Full Database Schema
+-- ProvenMRR: Full Database Schema
 -- Migration 001 — Tables & Indexes
 -- ============================================================
 

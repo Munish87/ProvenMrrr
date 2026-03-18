@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, MapPin, Calendar, Building2 } from "lucide-react";
 import { FrictionlessAddWrapper } from "@/components/startup/FrictionlessAddWrapper";
+import { Navbar } from "@/components/layout/Navbar";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-    title: "Find a Co-founder — Vetra",
+    title: "Find a Co-founder — ProvenMRR",
     description: "Discover founders actively searching for a co-founder.",
 };
 
@@ -21,15 +22,16 @@ export default async function CoFoundersPage(props: { searchParams: Promise<{ q?
     const query = searchParams.q?.toLowerCase() || "";
 
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
     // Fetch startups looking for a co-founder
     const { data: allStartups } = await supabase
         .from("startups")
-        .select("id, name, description, category, is_verified, verified, looking_for_cofounder, claimed_by_user_id, x_handle")
+        .select("id, name, description, category, is_verified, verified, looking_for_cofounder, claimed_by_user_id, x_handle, logo_url")
         .eq("looking_for_cofounder", true)
         .eq("is_anonymous", false)
         .order("created_at", { ascending: false })
-        .returns<{ id: string; name: string; description: string | null; category: string | null; is_verified: boolean; verified: boolean; looking_for_cofounder: boolean; claimed_by_user_id: string | null; x_handle: string | null }[]>();
+        .returns<{ id: string; name: string; description: string | null; category: string | null; is_verified: boolean; verified: boolean; looking_for_cofounder: boolean; claimed_by_user_id: string | null; x_handle: string | null; logo_url: string | null }[]>();
 
     // Filter by search query if exists
     let startups = allStartups || [];
@@ -62,7 +64,7 @@ export default async function CoFoundersPage(props: { searchParams: Promise<{ q?
     }
 
     // Get Founder Users
-    const userIds = [...new Set(startups.map(s => s.claimed_by_user_id).filter(Boolean))];
+    const userIds = [...new Set(startups.map(s => s.claimed_by_user_id).filter(Boolean))] as string[];
     let userMap = new Map();
     if (userIds.length > 0) {
         const { data: users } = await supabase
@@ -115,138 +117,162 @@ export default async function CoFoundersPage(props: { searchParams: Promise<{ q?
     }));
 
     return (
-        <div style={{ minHeight: "100vh", background: "var(--color-bg)" }}>
-            {/* Header Area */}
-            <div style={{ padding: "80px 24px 64px", textAlign: "center", maxWidth: 800, margin: "0 auto" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 24 }}>
-                    <Link href="/" className="site-logo" style={{ textDecoration: "none" }}>
-                        <span className="site-logo-dot" />
-                        Vetra
-                    </Link>
+        <>
+            <Navbar user={user} />
+
+            <div style={{ padding: "84px 24px 72px", textAlign: "center", maxWidth: 1100, margin: "0 auto" }}>
+                <div style={{ marginBottom: 32 }}>
+                    <h1 style={{ fontSize: 48, fontWeight: 700, color: "var(--color-text)", letterSpacing: "-0.03em", marginBottom: 24, lineHeight: 1.1 }}>
+                        Find the Right Co-Founder for Your Startup
+                    </h1>
+
+                    <p style={{ fontSize: 18, color: "var(--color-secondary)", lineHeight: 1.6, marginBottom: 24, maxWidth: 700, margin: "0 auto 24px auto", fontWeight: 500 }}>
+                        Explore startups actively searching for partners. Connect with builders, collaborate on ideas and launch something great together.
+                    </p>
+
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 18px", fontSize: 13, color: "var(--color-secondary)", fontWeight: 500, border: "1px solid var(--color-border)", background: "var(--color-surface)", borderRadius: 999, backdropFilter: "blur(22px)", boxShadow: "var(--shadow-card)" }}>
+                        Looking to find a co-founder? Access your <Link href="/dashboard/startups" style={{ color: "var(--color-accent)", textDecoration: "none", fontWeight: 700 }}>dashboard</Link> to enable this.
+                    </div>
                 </div>
 
-                <h1 style={{ fontSize: 42, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-1px", marginBottom: 24, lineHeight: 1.2 }}>
-                    Startups Looking for a Co-founder
-                </h1>
-
-                <p style={{ fontSize: 16, color: "var(--color-secondary)", lineHeight: 1.6, marginBottom: 40, maxWidth: 640, margin: "0 auto 40px auto" }}>
-                    Discover founders actively searching for a co-founder. Outreach is moderated by AI, then relayed directly by email. It's 100% free to use.
-                </p>
-
-                <p style={{ fontSize: 14, color: "var(--color-secondary)", marginBottom: 32, fontStyle: "italic" }}>
-                    Looking for a co-founder? Go to your startup <Link href="/dashboard/startups" style={{ color: "var(--color-text)", textDecoration: "underline", fontWeight: 600 }}>dashboard</Link> to activate this option.
-                </p>
-
-                {/* Search Bar */}
-                <div style={{ display: "flex", gap: 16, justifyContent: "center", maxWidth: 600, margin: "0 auto" }}>
+                {/* Search Bar Section */}
+                <div style={{ display: "flex", gap: 14, justifyContent: "center", alignItems: "stretch", maxWidth: 660, margin: "0 auto 44px" }}>
                     <form style={{ flex: 1, position: "relative" }} method="GET" action="/co-founders">
-                        <Search size={18} style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: "var(--color-secondary)" }} />
-                        <input
-                            name="q"
-                            type="text"
-                            defaultValue={query}
-                            placeholder="&quot;SaaS over $10K/mo&quot;"
-                            style={{
-                                width: "100%",
-                                padding: "14px 16px 14px 44px",
-                                borderRadius: 12,
-                                border: "1px solid var(--color-border)",
-                                fontSize: 15,
-                                outline: "none",
-                                boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
-                            }}
-                        />
+                        <div style={{ display: "flex", alignItems: "center", padding: "0 20px", height: 56, background: "var(--search-box-bg)", border: "1px solid var(--search-box-border)", borderRadius: 999, backdropFilter: "blur(22px)", boxShadow: "var(--search-box-shadow)" }}>
+                            <Search size={20} color="var(--color-secondary)" style={{ flexShrink: 0, opacity: 0.7 }} />
+                            <input
+                                name="q"
+                                type="text"
+                                defaultValue={query}
+                                placeholder="Search by niche, revenue, or tech stack..."
+                                style={{
+                                    width: "100%",
+                                    padding: "0 16px",
+                                    background: "none",
+                                    border: "none",
+                                    fontSize: 16,
+                                    outline: "none",
+                                    color: "var(--color-text)",
+                                    fontWeight: 500
+                                }}
+                            />
+                        </div>
                     </form>
                     <FrictionlessAddWrapper
                         text="Add startup"
-                        className=""
-                        style={{
-                            backgroundColor: "#111827",
-                            color: "white",
-                            border: "none",
-                            borderRadius: 8,
-                            padding: "12px 24px",
-                            fontWeight: 600,
-                            fontSize: 14,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            textDecoration: "none",
-                            whiteSpace: "nowrap"
-                        }}
+                        className="btn btn-primary"
+                        style={{ height: 56, padding: "0 28px", borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
                     />
                 </div>
-            </div>
 
-            {/* Grid */}
-            <div className="page-container" style={{ paddingBottom: 100 }}>
+                {/* Grid */}
                 {enhancedStartups.length === 0 ? (
-                    <div style={{ textAlign: "center", padding: "80px 20px", color: "var(--color-secondary)" }}>
-                        No startups found looking for a co-founder.
+                    <div className="card" style={{ textAlign: "center", padding: "80px 40px", background: "var(--color-surface)", border: "1px solid var(--color-border)", boxShadow: "var(--shadow-card)" }}>
+                        <div style={{ background: "var(--color-surface-strong)", width: 64, height: 64, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", border: "1px solid var(--color-border)" }}>
+                            <Search size={32} color="var(--color-secondary)" style={{ opacity: 0.55 }} />
+                        </div>
+                        <h3 style={{ fontSize: 20, fontWeight: 700, color: "var(--color-text)", marginBottom: 12 }}>No startups found yet</h3>
+                        <p style={{ color: "var(--color-secondary)", fontSize: 16, opacity: 0.72 }}>Try another search or check back soon as new founders join the network.</p>
                     </div>
                 ) : (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 24, maxWidth: 900, margin: "0 auto" }}>
-                        {enhancedStartups.map(s => (
-                            <Link key={s.id} href={`/startup/${s.id}`} style={{ textDecoration: "none", display: "block", color: "inherit" }}>
-                                <div style={{
-                                    background: "white",
-                                    border: "1px solid var(--color-border)",
-                                    borderRadius: 16,
-                                    padding: 24,
-                                    height: "100%",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    transition: "box-shadow 0.2s, transform 0.2s",
-                                    boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
-                                }}>
-                                    {/* Top Half */}
-                                    <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
-                                        <div className="startup-card-logo" style={{ width: 44, height: 44, fontSize: 18, flexShrink: 0, borderRadius: 10 }}>
-                                            {s.name.charAt(0)}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 24, textAlign: "left" }}>
+                        {enhancedStartups.map(s => {
+                            const isOwnStartup = s.claimed_by_user_id === user?.id;
+                            return (
+                                <div key={s.id} className="card card-hover" style={{ padding: 32, display: "flex", flexDirection: "column", height: "100%", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}>
+                                    {/* Top Header */}
+                                    <div style={{ display: "flex", gap: 20, marginBottom: 24 }}>
+                                        <div style={{ width: 56, height: 56, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--color-surface-strong)", border: "1px solid var(--color-border)", borderRadius: "12px", overflow: "hidden" }}>
+                                            {s.logo_url ? (
+                                                <img 
+                                                    src={s.logo_url} 
+                                                    alt={s.name} 
+                                                    style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+                                                />
+                                            ) : (
+                                                <span style={{ fontSize: 24, fontWeight: 700 }}>{s.name.charAt(0)}</span>
+                                            )}
                                         </div>
                                         <div>
-                                            <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text)", letterSpacing: "-0.3px", marginBottom: 6 }}>
-                                                {s.name}
-                                            </h3>
-                                            <p style={{ fontSize: 13, color: "var(--color-secondary)", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                                                {s.description || "No description provided."}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div style={{ flex: 1 }} />
-
-                                    {/* Bottom Half */}
-                                    <div style={{ display: "flex", alignItems: "flex-end", borderTop: "1px solid var(--color-border)", paddingTop: 16, gap: 16 }}>
-                                        <div style={{ flex: 1 }}>
-                                            <p style={{ fontSize: 10, fontWeight: 700, color: "var(--color-secondary)", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: 6 }}>Total revenue</p>
-                                            <p style={{ fontSize: 15, fontWeight: 700, color: "var(--color-text)" }}>{fmtMoney(s.totalRevenue)}</p>
-                                        </div>
-                                        <div style={{ flex: 1 }}>
-                                            <p style={{ fontSize: 10, fontWeight: 700, color: "var(--color-secondary)", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: 6 }}>MRR</p>
-                                            <p style={{ fontSize: 15, fontWeight: 700, color: "var(--color-text)" }}>{fmtMoney(s.mrr)}</p>
-                                        </div>
-                                        <div style={{ flex: 1.5 }}>
-                                            <p style={{ fontSize: 10, fontWeight: 700, color: "var(--color-secondary)", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: 6 }}>Founder</p>
-                                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                                {s.founderAvatar ? (
-                                                    <img src={s.founderAvatar} alt="Avatar" style={{ width: 18, height: 18, borderRadius: "50%", objectFit: "cover" }} />
-                                                ) : (
-                                                    <div style={{ width: 18, height: 18, borderRadius: "50%", background: "var(--color-border)" }} />
-                                                )}
-                                                <p style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                                    {s.founderName}
-                                                </p>
+                                            <Link href={`/startup/${s.id}`} style={{ textDecoration: "none" }}>
+                                                <h3 style={{ fontSize: 20, fontWeight: 700, color: "var(--color-text)", letterSpacing: "-0.01em", marginBottom: 6 }}>
+                                                    {s.name}
+                                                </h3>
+                                            </Link>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", color: "var(--color-secondary)", background: "var(--color-surface-strong)", border: "1px solid var(--color-border)", borderRadius: "6px" }}>{s.category || "SaaS"}</span>
+                                                {s.verified && <span style={{ color: "#10B981", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
+                                                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: "currentColor" }} />
+                                                    VERIFIED
+                                                </span>}
                                             </div>
                                         </div>
                                     </div>
+
+                                    <p style={{ fontSize: 15, color: "var(--color-secondary)", lineHeight: 1.6, marginBottom: 32, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", fontWeight: 500 }}>
+                                        {s.description || "Building the future of digital commerce. Join us as a co-founder to lead growth and operations."}
+                                    </p>
+
+                                    <div style={{ flex: 1 }} />
+
+                                    {/* Metrics & Founder */}
+                                    <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: 24 }}>
+                                        <div style={{ display: "flex", marginBottom: 24 }}>
+                                            <div style={{ flex: 1 }}>
+                                                <p style={{ fontSize: 10, fontWeight: 700, color: "var(--color-secondary)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 6 }}>Total Revenue</p>
+                                                <p style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text)", margin: 0 }}>{fmtMoney(s.totalRevenue)}</p>
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <p style={{ fontSize: 10, fontWeight: 700, color: "var(--color-secondary)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 6 }}>Verified MRR</p>
+                                                <p style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text)", margin: 0 }}>{fmtMoney(s.mrr)}</p>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                                {s.founderAvatar ? (
+                                                    <img src={s.founderAvatar} alt="Avatar" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--color-border)" }} />
+                                                ) : (
+                                                    <div style={{ width: 32, height: 32, fontSize: 14, background: "var(--color-surface-strong)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "var(--color-secondary)" }}>
+                                                        {s.founderName.charAt(0)}
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <p style={{ fontSize: 10, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Founder</p>
+                                                    <p style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)", margin: 0 }}>{s.founderName}</p>
+                                                </div>
+                                            </div>
+                                            {isOwnStartup ? (
+                                                <span style={{ padding: "6px 14px", fontSize: 12, fontWeight: 700, color: "var(--color-secondary)", border: "1px solid var(--color-border)", background: "var(--color-surface)", borderRadius: "20px" }}>
+                                                    Your startup
+                                                </span>
+                                            ) : (
+                                                <Link
+                                                    href={`/co-founders/connect?startupId=${s.id}`}
+                                                    style={{ 
+                                                        padding: "8px 18px", 
+                                                        fontSize: 12, 
+                                                        fontWeight: 800, 
+                                                        color: "#FFFFFF", 
+                                                        background: "var(--color-accent)", 
+                                                        borderRadius: "20px", 
+                                                        textDecoration: "none",
+                                                        boxShadow: "0 4px 12px rgba(99, 102, 241, 0.25)",
+                                                        transition: "all 0.2s ease"
+                                                    }}
+                                                    className="btn-hover"
+                                                >
+                                                    Connect
+                                                </Link>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                            </Link>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>
-        </div>
+        </>
     );
 }

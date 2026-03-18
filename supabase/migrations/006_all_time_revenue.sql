@@ -1,5 +1,5 @@
 -- ============================================================
--- Vetra: All-Time Revenue Tracking
+-- ProvenMRR: All-Time Revenue Tracking
 -- Migration 006 — Support for All-Time historical extraction 
 -- ============================================================
 

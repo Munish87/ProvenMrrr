@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
             breakdown: healthResult.breakdown,
         });
     } catch (error) {
-        console.error("[health-score/recalculate]", error);
+        if (process.env.NODE_ENV !== "production") console.error("[health-score/recalculate]", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }

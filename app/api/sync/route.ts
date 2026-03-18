@@ -5,6 +5,14 @@ import { decryptApiKey } from "@/lib/crypto";
 
 export async function GET(req: Request) {
     try {
+        const authHeader = req.headers.get("Authorization");
+        const cronSecret = process.env.CRON_SECRET;
+
+        // Secure endpoint with secret check
+        if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const adminSupabase = createAdminClient();
         const url = new URL(req.url);
         const forceId = url.searchParams.get("id");

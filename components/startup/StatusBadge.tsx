@@ -9,9 +9,9 @@ interface StatusBadgeProps {
 type BadgeConfig = { label: string; background: string; color: string };
 
 const CONFIG: Record<string, BadgeConfig> = {
-    sale: { label: "FOR SALE", background: "#FEF3C7", color: "#92400E" },
+    sale: { label: "FOR SALE", background: "#DCFCE7", color: "#166534" },
     sold: { label: "SOLD", background: "#FEE2E2", color: "#991B1B" },
-    offers: { label: "OFFERS", background: "#DBEAFE", color: "#1E40AF" },
+    offers: { label: "OFFERS", background: "#FEF3C7", color: "#92400E" },
     new: { label: "NEW", background: "#DCFCE7", color: "#166534" },
 };
 
@@ -20,14 +20,15 @@ export function StatusBadge({ status, label }: StatusBadgeProps) {
     if (!cfg) return null;
     return (
         <span style={{
-            fontSize: 11,
-            fontWeight: 600,
-            padding: "3px 8px",
-            borderRadius: 6,
+            fontSize: 9,
+            fontWeight: 700,
+            padding: "2px 7px",
+            borderRadius: 999,
             background: cfg.background,
             color: cfg.color,
             whiteSpace: "nowrap",
             flexShrink: 0,
+            letterSpacing: "0.04em",
         }}>
             {label ?? cfg.label}
         </span>

@@ -1,0 +1,78 @@
+﻿--- Fetching pixel-money ---
+{
+  "data": {
+    "name": "Pixel Money",
+    "slug": "pixel-money",
+    "url": "https://trustmrr.com/startup/pixel-money",
+    "icon": "https://d21oz30g4w22sz.cloudfront.net/logos/pixel-money-fd7a909f-8a0f-4867-b129-2fbe7511142f.jpg",
+    "description": "AI consulting and implementation services for businesses looking to integrate artificial intelligence solutions. Services include AI strategy development, custom AI tool implementation, automation consulting, and ongoing advisory support to help clients leverage AI technology and marketing tools for business growth and efficiency improvements.",
+    "website": "https://pixelmoney.ai",
+    "country": "US",
+    "foundedDate": "2026-01-24T00:00:00.000Z",
+    "category": null,
+    "paymentProvider": "stripe",
+    "targetAudience": "B2B",
+    "revenue": {
+      "last30Days": 500,
+      "mrr": 0,
+      "total": 1000
+    },
+    "customers": 0,
+    "activeSubscriptions": 0,
+    "askingPrice": null,
+    "profitMarginLast30Days": null,
+    "growth30d": 0,
+    "growthMRR30d": 0,
+    "multiple": null,
+    "rank": 1599,
+    "visitorsLast30Days": null,
+    "googleSearchImpressionsLast30Days": null,
+    "revenuePerVisitor": null,
+    "onSale": false,
+    "firstListedForSaleAt": null,
+    "xHandle": "pixelmoneyai",
+    "xFollowerCount": null,
+    "isMerchantOfRecord": false,
+    "techStack": [],
+    "cofounders": []
+  }
+}
+--- Fetching gumroad ---
+{
+  "data": {
+    "name": "Gumroad",
+    "slug": "gumroad",
+    "url": "https://trustmrr.com/startup/gumroad",
+    "icon": "https://d21oz30g4w22sz.cloudfront.net/logos/gumroad-113809f2-c628-4d3a-8adb-fbdc414784d7.png",
+    "description": "Go from 0 to $1",
+    "website": "https://gumroad.com",
+    "country": "US",
+    "foundedDate": "2011-11-05T20:37:14.000Z",
+    "category": "E-commerce",
+    "paymentProvider": "stripe",
+    "targetAudience": null,
+    "revenue": {
+      "last30Days": 7143937.999999995,
+      "mrr": 0,
+      "total": 878595860.5199997
+    },
+    "customers": 0,
+    "activeSubscriptions": 0,
+    "askingPrice": null,
+    "profitMarginLast30Days": null,
+    "growth30d": null,
+    "growthMRR30d": null,
+    "multiple": null,
+    "rank": 1,
+    "visitorsLast30Days": null,
+    "googleSearchImpressionsLast30Days": null,
+    "revenuePerVisitor": null,
+    "onSale": false,
+    "firstListedForSaleAt": null,
+    "xHandle": "shl",
+    "xFollowerCount": 384628,
+    "isMerchantOfRecord": true,
+    "techStack": [],
+    "cofounders": []
+  }
+}

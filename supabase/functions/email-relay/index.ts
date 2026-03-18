@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
                 Authorization: `Bearer ${resendApiKey}`,
             },
             body: JSON.stringify({
-                from: "Vetra Relays <offers@vetra.app>", // Update domain as needed
+                from: "ProvenMRR Relays <offers@provenmrr.com>", // Update domain as needed
                 to: [startup.contact_email],
                 reply_to: buyerEmail, // So founder can naturally "Reply" directly to the buyer
                 subject: `New $${offerAmount} Offer for ${startup.name}`,
@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
               </div>
             </div>
             <p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">
-              Reply directly to this email to communicate with the buyer. Vetra keeps your email private until you respond.
+              Reply directly to this email to communicate with the buyer. ProvenMRR keeps your email private until you respond.
             </p>
           </div>
         `,

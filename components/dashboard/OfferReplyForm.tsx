@@ -23,7 +23,7 @@ export function OfferReplyForm({ offerId, existingReply }: OfferReplyFormProps) 
             await replyToOffer(offerId, message);
             setShowSuccess(true);
         } catch (error) {
-            console.error("Failed to send reply:", error);
+            if (process.env.NODE_ENV !== "production") console.error("Failed to send reply:", error);
             alert("Failed to send reply. Please try again.");
         } finally {
             setIsSubmitting(false);
@@ -34,25 +34,25 @@ export function OfferReplyForm({ offerId, existingReply }: OfferReplyFormProps) 
         return (
             <div style={{
                 marginTop: 16,
-                padding: "12px 16px",
-                background: "#F0FDF4",
-                border: "1px solid #BBF7D0",
-                borderRadius: 8,
+                padding: "16px 20px",
+                background: "rgba(16, 185, 129, 0.05)",
+                border: "1px solid rgba(16, 185, 129, 0.2)",
+                borderRadius: 12,
                 display: "flex",
                 alignItems: "center",
                 gap: 10
             }}>
-                <CheckCircle2 size={18} color="#16A34A" />
+                <CheckCircle2 size={18} color="var(--color-positive)" />
                 <div>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: "#166534", margin: 0 }}>Reply Sent to Buyer</p>
-                    <p style={{ fontSize: 13, color: "#166534", opacity: 0.8, margin: 0, marginTop: 2 }}>
+                    <p style={{ fontSize: 13, fontWeight: 800, color: "var(--color-positive)", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>Reply Sent to Buyer</p>
+                    <p style={{ fontSize: 13, color: "white", opacity: 0.8, margin: 0, marginTop: 4, fontWeight: 500 }}>
                         "{message}"
                     </p>
                 </div>
                 {!existingReply && (
                     <button 
                         onClick={() => setShowSuccess(false)}
-                        style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: "#166534", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+                        style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: "white", background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 6, padding: "4px 10px", cursor: "pointer", transition: "all 0.2s" }}
                     >
                         Edit
                     </button>
@@ -70,17 +70,25 @@ export function OfferReplyForm({ offerId, existingReply }: OfferReplyFormProps) 
                     placeholder="Type a message or counter-offer to send to the buyer..."
                     style={{
                         width: "100%",
-                        padding: "12px 16px",
-                        borderRadius: 8,
-                        border: "1px solid var(--color-border)",
-                        fontSize: 14,
-                        minHeight: 80,
+                        padding: "14px 18px",
+                        borderRadius: 12,
+                        background: "rgba(255,255,255,0.03)",
+                        border: "1px solid rgba(255,255,255,0.05)",
+                        fontSize: 15,
+                        color: "white",
+                        minHeight: 100,
                         resize: "vertical",
                         outline: "none",
-                        transition: "border-color 0.2s"
+                        transition: "all 0.25s"
                     }}
-                    onFocus={(e) => e.target.style.borderColor = "var(--color-primary)"}
-                    onBlur={(e) => e.target.style.borderColor = "var(--color-border)"}
+                    onFocus={(e) => {
+                        e.target.style.borderColor = "var(--color-accent)";
+                        e.target.style.background = "rgba(255,255,255,0.08)";
+                    }}
+                    onBlur={(e) => {
+                        e.target.style.borderColor = "rgba(255,255,255,0.05)";
+                        e.target.style.background = "rgba(255,255,255,0.03)";
+                    }}
                 />
                 <button
                     type="submit"

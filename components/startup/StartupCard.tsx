@@ -24,19 +24,19 @@ export function StartupCard({
     rank,
 }: StartupCardProps) {
     const riskColors = {
-        low: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
-        medium: "text-amber-400 bg-amber-400/10 border-amber-400/20",
-        high: "text-rose-400 bg-rose-400/10 border-rose-400/20",
+        low: "text-emerald-600 bg-emerald-50 border-emerald-100",
+        medium: "text-amber-600 bg-amber-50 border-amber-100",
+        high: "text-rose-600 bg-rose-50 border-rose-100",
     };
 
     return (
         <Link href={`/startup/${startup.id}`}>
-            <div className="glass rounded-xl p-5 card-hover cursor-pointer bg-vetra-surface">
+            <div className="card p-5 card-hover cursor-pointer border border-zinc-100">
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3 min-w-0">
                         {/* Rank badge */}
                         {rank && (
-                            <span className="flex-shrink-0 w-7 h-7 rounded-full bg-vetra-primary/20 text-vetra-primary text-xs font-bold flex items-center justify-center">
+                            <span className="flex-shrink-0 w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 text-xs font-bold flex items-center justify-center">
                                 #{rank}
                             </span>
                         )}
@@ -47,8 +47,8 @@ export function StartupCard({
                         </div>
  
                         <div className="min-w-0">
-                            <h3 className="font-semibold text-white truncate" style={{ filter: startup.is_anonymous ? "blur(5px)" : "none" }}>{startup.name}</h3>
-                            <p className="text-xs text-slate-400 truncate mt-0.5">
+                            <h3 className="font-semibold text-zinc-900 truncate" style={{ filter: startup.is_anonymous ? "blur(5px)" : "none" }}>{startup.name}</h3>
+                            <p className="text-xs text-zinc-500 truncate mt-0.5">
                                 {startup.category ?? "SaaS"}{startup.country ? ` · ${startup.country}` : ""}
                             </p>
                         </div>
@@ -59,31 +59,31 @@ export function StartupCard({
 
                 <div className="mt-4 grid grid-cols-3 gap-3">
                     <div>
-                        <p className="text-xs text-slate-500">MRR</p>
-                        <p className="text-sm font-semibold text-white mt-0.5">
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">MRR</p>
+                        <p className="text-sm font-bold text-zinc-900 mt-0.5">
                             {formatCurrency(mrr)}
                         </p>
                     </div>
                     <div>
-                        <p className="text-xs text-slate-500">Growth</p>
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Growth</p>
                         <p
-                            className={`text-sm font-semibold mt-0.5 ${growthRate >= 0 ? "text-emerald-400" : "text-rose-400"
+                            className={`text-sm font-bold mt-0.5 ${growthRate >= 0 ? "text-emerald-600" : "text-rose-600"
                                 }`}
                         >
                             {formatPercent(growthRate)}
                         </p>
                     </div>
                     <div>
-                        <p className="text-xs text-slate-500">Risk</p>
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Risk</p>
                         <span
-                            className={`inline-block mt-0.5 text-xs font-semibold px-2 py-0.5 rounded-full border capitalize ${riskColors[riskLevel]}`}
+                            className={`inline-block mt-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full border border-current capitalize ${riskColors[riskLevel]}`}
                         >
                             {riskLevel}
                         </span>
                     </div>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-white/5">
+                <div className="mt-3 pt-3 border-t border-zinc-100">
                     <VerifiedBadge isVerified={startup.is_verified} />
                 </div>
             </div>

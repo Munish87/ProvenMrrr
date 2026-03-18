@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { sendOfferMessage } from "@/app/actions/user";
-import { MessageSquare, Send, Loader2 } from "lucide-react";
+import { Loader2, MessageSquare, Send } from "lucide-react";
 
 interface Message {
     id: string;
@@ -24,20 +24,20 @@ function formatTime(dateStr: string): string {
 }
 
 function formatDateLabel(dateStr: string): string {
-    const d = new Date(dateStr);
+    const date = new Date(dateStr);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
 
-    if (d.toDateString() === today.toDateString()) return "Today";
-    if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
-    return d.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" });
+    if (date.toDateString() === today.toDateString()) return "Today";
+    if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+    return date.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" });
 }
 
-/** Group messages by calendar day */
 function groupByDay(messages: Message[]) {
     const groups: { label: string; messages: Message[] }[] = [];
     let currentDay = "";
+
     for (const msg of messages) {
         const day = new Date(msg.created_at).toDateString();
         if (day !== currentDay) {
@@ -46,6 +46,7 @@ function groupByDay(messages: Message[]) {
         }
         groups[groups.length - 1].messages.push(msg);
     }
+
     return groups;
 }
 
@@ -65,7 +66,9 @@ export default function OfferConversation({
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    useEffect(() => { setIsMounted(true); }, []);
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     useEffect(() => {
         const sorted = [...initialMessages].sort(
@@ -78,18 +81,18 @@ export default function OfferConversation({
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
-    const handleSendMessage = async (e: React.FormEvent) => {
+    async function handleSendMessage(e: React.FormEvent) {
         e.preventDefault();
         if (!newMessage.trim() || isSending) return;
 
-        // Optimistic update
         const optimistic: Message = {
             id: `optimistic-${Date.now()}`,
             content: newMessage.trim(),
             sender_id: currentUserId,
             created_at: new Date().toISOString(),
         };
-        setMessages(prev => [...prev, optimistic]);
+
+        setMessages((prev) => [...prev, optimistic]);
         const sent = newMessage;
         setNewMessage("");
         if (textareaRef.current) textareaRef.current.style.height = "auto";
@@ -99,23 +102,22 @@ export default function OfferConversation({
             await sendOfferMessage(offerId, sent);
         } catch (error) {
             console.error("Failed to send message:", error);
-            setMessages(prev => prev.filter(m => m.id !== optimistic.id));
+            setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
             setNewMessage(sent);
         } finally {
             setIsSending(false);
         }
-    };
+    }
 
-    const adjustTextarea = (el: HTMLTextAreaElement) => {
+    function adjustTextarea(el: HTMLTextAreaElement) {
         el.style.height = "auto";
-        el.style.height = Math.min(el.scrollHeight, 140) + "px";
-    };
+        el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
+    }
 
     const dayGroups = groupByDay(messages);
 
     return (
-        <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#F8F9FB" }}>
-            {/* ── Messages ── */}
+        <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--color-surface)" }}>
             <div
                 style={{
                     flex: 1,
@@ -124,6 +126,8 @@ export default function OfferConversation({
                     display: "flex",
                     flexDirection: "column",
                     gap: 0,
+                    background:
+                        "radial-gradient(circle at top left, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 18%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--color-positive) 7%, transparent), transparent 18%)",
                 }}
             >
                 {messages.length === 0 ? (
@@ -135,23 +139,22 @@ export default function OfferConversation({
                             alignItems: "center",
                             justifyContent: "center",
                             height: "100%",
-                            opacity: 0.4,
+                            opacity: 0.72,
                             textAlign: "center",
                             paddingBottom: 60,
                         }}
                     >
-                        <MessageSquare size={40} strokeWidth={1} color="#94A3B8" style={{ marginBottom: 12 }} />
-                        <p style={{ fontSize: 13, color: "#64748B", fontWeight: 600, margin: 0 }}>
+                        <MessageSquare size={40} strokeWidth={1} color="var(--color-muted)" style={{ marginBottom: 16, opacity: 0.45 }} />
+                        <p style={{ fontSize: 13, color: "var(--color-muted)", fontWeight: 600, margin: 0 }}>
                             No messages yet.
                         </p>
-                        <p style={{ fontSize: 12, color: "#94A3B8", margin: "4px 0 0", fontWeight: 500 }}>
+                        <p style={{ fontSize: 12, color: "var(--color-muted)", margin: "6px 0 0", fontWeight: 500 }}>
                             Start the conversation!
                         </p>
                     </div>
                 ) : (
-                    dayGroups.map((group, gi) => (
-                        <div key={gi}>
-                            {/* Day divider */}
+                    dayGroups.map((group, groupIndex) => (
+                        <div key={groupIndex}>
                             <div
                                 style={{
                                     display: "flex",
@@ -160,51 +163,48 @@ export default function OfferConversation({
                                     margin: "20px 0 16px",
                                 }}
                             >
-                                <div style={{ flex: 1, height: 1, background: "#EAECF0" }} />
+                                <div style={{ flex: 1, height: 1, background: "var(--color-border)" }} />
                                 <span
                                     style={{
                                         fontSize: 10,
-                                        fontWeight: 700,
-                                        color: "#9EA3AE",
+                                        fontWeight: 800,
+                                        color: "var(--color-muted)",
                                         textTransform: "uppercase",
-                                        letterSpacing: "0.06em",
+                                        letterSpacing: "0.1em",
                                         whiteSpace: "nowrap",
                                     }}
                                 >
                                     {group.label}
                                 </span>
-                                <div style={{ flex: 1, height: 1, background: "#EAECF0" }} />
+                                <div style={{ flex: 1, height: 1, background: "var(--color-border)" }} />
                             </div>
 
-                            {/* Messages in this day */}
                             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                                {group.messages.map((msg, mi) => {
+                                {group.messages.map((msg, messageIndex) => {
                                     const isMe = msg.sender_id === currentUserId;
-                                    const prevMsg = group.messages[mi - 1];
-                                    const nextMsg = group.messages[mi + 1];
+                                    const prevMsg = group.messages[messageIndex - 1];
+                                    const nextMsg = group.messages[messageIndex + 1];
                                     const isFirstInRun = !prevMsg || prevMsg.sender_id !== msg.sender_id;
                                     const isLastInRun = !nextMsg || nextMsg.sender_id !== msg.sender_id;
 
-                                    // Bubble border radii: iOS tail on last bubble in run
                                     const br = 18;
                                     const tail = 4;
                                     const borderRadius = isMe
-                                        ? `${br}px ${isFirstInRun ? br : br}px ${isLastInRun ? tail : br}px ${br}px`
-                                        : `${isFirstInRun ? br : br}px ${br}px ${br}px ${isLastInRun ? tail : br}px`;
+                                        ? `${br}px ${br}px ${isLastInRun ? tail : br}px ${br}px`
+                                        : `${br}px ${br}px ${br}px ${isLastInRun ? tail : br}px`;
 
                                     return (
                                         <div key={msg.id} style={{ display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start" }}>
-                                            {/* Sender label on first bubble in run (other party only) */}
                                             {!isMe && isFirstInRun && (
                                                 <span
                                                     style={{
                                                         fontSize: 10,
                                                         fontWeight: 700,
-                                                        color: "#9EA3AE",
-                                                        marginBottom: 4,
+                                                        color: "var(--color-muted)",
+                                                        marginBottom: 6,
                                                         marginLeft: 4,
                                                         textTransform: "uppercase",
-                                                        letterSpacing: "0.05em",
+                                                        letterSpacing: "0.08em",
                                                     }}
                                                 >
                                                     {otherPartyName}
@@ -222,34 +222,33 @@ export default function OfferConversation({
                                                     wordBreak: "break-word",
                                                     ...(isMe
                                                         ? {
-                                                            background: accentColor,
-                                                            color: "#FFFFFF",
-                                                            boxShadow: `0 2px 12px ${accentColor}44`,
-                                                        }
+                                                              background: accentColor,
+                                                              color: "#FFFFFF",
+                                                              boxShadow: `0 2px 12px ${accentColor}44`,
+                                                          }
                                                         : {
-                                                            background: "#FFFFFF",
-                                                            color: "#0F1117",
-                                                            border: "1px solid #EAECF0",
-                                                            boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
-                                                        }),
+                                                              background: "var(--color-surface-strong)",
+                                                              color: "var(--color-text)",
+                                                              border: "1px solid var(--color-border)",
+                                                              boxShadow: "0 4px 12px rgba(15,23,42,0.08)",
+                                                          }),
                                                 }}
                                             >
                                                 {msg.content}
                                             </div>
 
-                                            {/* Timestamp after last bubble in run */}
                                             {isLastInRun && (
                                                 <span
                                                     style={{
                                                         fontSize: 10,
-                                                        color: "#B0B7C3",
-                                                        fontWeight: 600,
+                                                        color: "var(--color-muted)",
+                                                        fontWeight: 700,
                                                         marginTop: 3,
                                                         marginLeft: isMe ? 0 : 4,
                                                         marginRight: isMe ? 4 : 0,
                                                     }}
                                                 >
-                                                    {isMounted ? formatTime(msg.created_at) : "···"}
+                                                    {isMounted ? formatTime(msg.created_at) : "..."}
                                                 </span>
                                             )}
                                         </div>
@@ -262,12 +261,11 @@ export default function OfferConversation({
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* ── Input Bar ── */}
             <div
                 style={{
-                    padding: "12px 20px 16px",
-                    background: "#FFFFFF",
-                    borderTop: "1px solid #EAECF0",
+                    padding: "16px 20px 24px",
+                    background: "transparent",
+                    borderTop: "1px solid var(--color-border)",
                 }}
             >
                 <form
@@ -275,15 +273,21 @@ export default function OfferConversation({
                     style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: 10,
-                        background: "#F2F4F7",
-                        borderRadius: 20,
-                        padding: "8px 8px 8px 16px",
-                        border: "1px solid #EAECF0",
-                        transition: "border-color 0.15s",
+                        gap: 12,
+                        background: "var(--color-surface-strong)",
+                        borderRadius: 24,
+                        padding: "10px 10px 10px 20px",
+                        border: "1px solid var(--color-border)",
+                        transition: "all 0.25s",
                     }}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = accentColor + "66")}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = "#EAECF0")}
+                    onFocus={(e) => {
+                        e.currentTarget.style.borderColor = accentColor;
+                        e.currentTarget.style.background = "var(--color-surface)";
+                    }}
+                    onBlur={(e) => {
+                        e.currentTarget.style.borderColor = "var(--color-border)";
+                        e.currentTarget.style.background = "var(--color-surface-strong)";
+                    }}
                 >
                     <textarea
                         ref={textareaRef}
@@ -292,7 +296,7 @@ export default function OfferConversation({
                             setNewMessage(e.target.value);
                             adjustTextarea(e.target);
                         }}
-                        placeholder="Message…"
+                        placeholder="Message..."
                         rows={1}
                         style={{
                             flex: 1,
@@ -300,8 +304,8 @@ export default function OfferConversation({
                             border: "none",
                             outline: "none",
                             resize: "none",
-                            fontSize: 14,
-                            color: "#0F1117",
+                            fontSize: 15,
+                            color: "var(--color-text)",
                             lineHeight: 1.5,
                             maxHeight: 140,
                             overflowY: "auto",
@@ -311,20 +315,19 @@ export default function OfferConversation({
                         onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey) {
                                 e.preventDefault();
-                                handleSendMessage(e);
+                                void handleSendMessage(e);
                             }
                         }}
                     />
 
-                    {/* Send button */}
                     <button
                         type="submit"
                         disabled={!newMessage.trim() || isSending}
                         style={{
-                            width: 36,
-                            height: 36,
+                            width: 38,
+                            height: 38,
                             borderRadius: "50%",
-                            background: newMessage.trim() ? accentColor : "#E2E8F0",
+                            background: newMessage.trim() ? accentColor : "color-mix(in srgb, var(--color-text) 6%, transparent)",
                             border: "none",
                             cursor: newMessage.trim() ? "pointer" : "default",
                             display: "flex",
@@ -334,8 +337,12 @@ export default function OfferConversation({
                             transition: "background 0.2s, transform 0.1s",
                             boxShadow: newMessage.trim() ? `0 2px 8px ${accentColor}55` : "none",
                         }}
-                        onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.93)"; }}
-                        onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                        onMouseDown={(e) => {
+                            e.currentTarget.style.transform = "scale(0.93)";
+                        }}
+                        onMouseUp={(e) => {
+                            e.currentTarget.style.transform = "scale(1)";
+                        }}
                     >
                         {isSending ? (
                             <Loader2 size={16} color="#FFFFFF" className="animate-spin" />
@@ -345,15 +352,14 @@ export default function OfferConversation({
                     </button>
                 </form>
 
-                {/* Hint */}
                 <p
                     style={{
                         margin: "6px 0 0",
                         fontSize: 10,
-                        color: "#C5C8D0",
-                        fontWeight: 500,
+                        color: "var(--color-muted)",
+                        fontWeight: 700,
                         textAlign: "center",
-                        letterSpacing: "0.02em",
+                        letterSpacing: "0.05em",
                     }}
                 >
                     Press Enter to send · Shift+Enter for new line

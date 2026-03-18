@@ -215,7 +215,7 @@ function AdvertiserSignupModal({
                 ) : (
                     <>
                         <div className="modal-header">
-                            <h2 className="modal-title">Advertise on Vetra</h2>
+                            <h2 className="modal-title">Advertise on ProvenMRR</h2>
                             <p className="modal-subtitle">
                                 {9 - filledSlots} slot{9 - filledSlots !== 1 ? "s" : ""} available
                             </p>

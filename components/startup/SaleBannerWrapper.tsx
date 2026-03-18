@@ -5,7 +5,7 @@ import { formatCurrency } from "@/lib/utils";
 import { OfferModal } from "./OfferModal";
 
 interface Props {
-    askingPrice: string;
+    askingPrice: string | null;
     startupId: string;
     startupName: string;
     revMultiple: string | null;
@@ -32,8 +32,11 @@ export function SaleBannerWrapper({ askingPrice, startupId, startupName, revMult
                     <span style={{ fontSize: 16 }}>💰</span>
                 </div>
                 <div>
-                    <h3 style={{ fontSize: 15, fontWeight: 700, color: "#925A0F", margin: 0, marginBottom: 2 }}>
-                        This startup is for sale. Asking price: {askingPrice}
+                    <h3 suppressHydrationWarning style={{ fontSize: 15, fontWeight: 700, color: "#925A0F", margin: 0, marginBottom: 2 }}>
+                        This startup is for sale.
+                        {askingPrice && (
+                            <> Asking price: {askingPrice}</>
+                        )}
                     </h3>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12, color: "#AC7216", fontWeight: 500 }}>
                         {revMultiple && (

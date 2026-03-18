@@ -132,20 +132,20 @@ export default function StartupDetailPage() {
             <div className="flex items-start justify-between gap-4">
                 <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                        <h1 className="text-2xl font-bold text-white">{startup.name}</h1>
+                        <h1 className="text-2xl font-bold text-slate-900">{startup.name}</h1>
                         {startup.is_verified && <VerifiedBadge />}
                     </div>
-                    <p className="text-slate-400 text-sm mt-1">{startup.description ?? ""}</p>
+                    <p className="text-slate-500 text-sm mt-1">{startup.description ?? ""}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                    <Link href={`/startup/${id}`} target="_blank" className="p-2 rounded-lg glass hover:bg-white/10 transition-colors" title="Public page">
-                        <ExternalLink size={15} className="text-slate-400" />
+                    <Link href={`/startup/${id}`} target="_blank" className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors" title="Public page">
+                        <ExternalLink size={15} className="text-slate-500" />
                     </Link>
                     {startup.is_verified && (
                         <button
                             onClick={handleRefresh}
                             disabled={refreshing}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg glass text-slate-400 hover:text-white text-sm transition-colors disabled:opacity-50"
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-slate-900 text-sm transition-colors disabled:opacity-50"
                         >
                             <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
                             Refresh
@@ -156,13 +156,13 @@ export default function StartupDetailPage() {
 
             {/* Health score + key metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="glass rounded-2xl p-6 flex items-center gap-5">
+                <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-6 flex items-center gap-5">
                     <HealthScoreBadge score={latestScore?.score ?? 0} size="lg" />
                     <div>
                         <p className="text-xs text-slate-500 uppercase tracking-wide">Health Score</p>
-                        <p className="text-3xl font-black text-white mt-0.5">
+                        <p className="text-3xl font-black text-slate-900 mt-0.5">
                             {latestScore?.score ?? "—"}
-                            <span className="text-base font-normal text-slate-500">/100</span>
+                            <span className="text-base font-normal text-slate-400">/100</span>
                         </p>
                         <p
                             className="text-sm capitalize mt-1"
@@ -185,9 +185,9 @@ export default function StartupDetailPage() {
                         { label: "MoM Growth", value: latestSnap ? formatPercent(latestSnap.growth_rate) : "—" },
                         { label: "Churn Rate", value: latestSnap ? `${latestSnap.churn_rate.toFixed(1)}%` : "—" },
                     ].map(({ label, value }) => (
-                        <div key={label} className="glass rounded-xl p-4">
+                        <div key={label} className="bg-white border border-slate-100 shadow-sm rounded-xl p-4">
                             <p className="text-xs text-slate-500">{label}</p>
-                            <p className="text-base font-bold text-white mt-0.5">{value}</p>
+                            <p className="text-base font-bold text-slate-900 mt-0.5">{value}</p>
                         </div>
                     ))}
                 </div>
@@ -195,8 +195,8 @@ export default function StartupDetailPage() {
 
             {/* Full metrics (private) */}
             {latestSnap && (
-                <div className="glass rounded-2xl p-6">
-                    <h2 className="text-sm font-semibold text-white mb-4">Full Metrics</h2>
+                <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-6">
+                    <h2 className="text-sm font-semibold text-slate-900 mb-4">Full Metrics</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {[
                             { label: "Customer Count", value: String(latestSnap.customer_count) },
@@ -206,7 +206,7 @@ export default function StartupDetailPage() {
                         ].map(({ label, value }) => (
                             <div key={label}>
                                 <p className="text-xs text-slate-500">{label}</p>
-                                <p className="text-sm font-semibold text-white mt-1">{value}</p>
+                                <p className="text-sm font-semibold text-slate-900 mt-1">{value}</p>
                             </div>
                         ))}
                     </div>
@@ -215,26 +215,26 @@ export default function StartupDetailPage() {
 
             {/* Revenue chart */}
             {chartData.length > 0 && (
-                <div className="glass rounded-2xl p-6">
-                    <h2 className="text-sm font-semibold text-white mb-4">Revenue History</h2>
+                <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-6">
+                    <h2 className="text-sm font-semibold text-slate-900 mb-4">Revenue History</h2>
                     <RevenueChart data={chartData} />
                 </div>
             )}
 
             {/* AI Summary */}
             {latestScore?.ai_summary && (
-                <div className="glass rounded-2xl p-6">
-                    <h2 className="text-sm font-semibold text-white mb-3">AI Health Analysis</h2>
-                    <p className="text-slate-400 text-sm leading-relaxed">{latestScore.ai_summary}</p>
+                <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-6">
+                    <h2 className="text-sm font-semibold text-slate-900 mb-3">AI Health Analysis</h2>
+                    <p className="text-slate-500 text-sm leading-relaxed">{latestScore.ai_summary}</p>
                 </div>
             )}
 
             {/* Co-Founder Search */}
-            <div className="glass rounded-2xl p-6">
+            <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-6">
                 <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
                     <div>
-                        <h2 className="text-sm font-semibold text-white mb-1">Co-founder Search</h2>
-                        <p className="text-slate-400 text-sm">
+                        <h2 className="text-sm font-semibold text-slate-900 mb-1">Co-founder Search</h2>
+                        <p className="text-slate-500 text-sm">
                             List this startup in the public directory to find a co-founder.
                         </p>
                     </div>
@@ -253,10 +253,10 @@ export default function StartupDetailPage() {
             </div>
 
             {/* Stripe Connect */}
-            <div className="glass rounded-2xl p-6">
+            <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-6">
                 <div className="flex items-center gap-2 mb-4">
-                    <Link2 size={16} className="text-indigo-400" />
-                    <h2 className="text-sm font-semibold text-white">
+                    <Link2 size={16} className="text-indigo-500" />
+                    <h2 className="text-sm font-semibold text-slate-900">
                         {startup.is_verified ? "Update Stripe Connection" : "Connect Stripe"}
                     </h2>
                 </div>
@@ -271,7 +271,7 @@ export default function StartupDetailPage() {
                             value={apiKey}
                             onChange={(e) => setApiKey(e.target.value)}
                             placeholder="rk_live_..."
-                            className="w-full px-4 py-2.5 pr-10 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-600 text-sm focus:outline-none focus:border-indigo-500"
+                            className="w-full px-4 py-2.5 pr-10 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-indigo-500"
                         />
                         <button onClick={() => setShowKey(!showKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
                             {showKey ? <EyeOff size={14} /> : <Eye size={14} />}

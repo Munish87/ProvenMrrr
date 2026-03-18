@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Inbox, Heart, Building2, User, Settings as SettingsIcon, CreditCard, LogOut, Mail, Send } from "lucide-react";
+import { Inbox, Heart, Building2, User, Settings as SettingsIcon, CreditCard, LogOut, Mail, Send, Flame } from "lucide-react";
 import { setDashboardRole } from "@/app/actions/user";
 
 type DashboardRole = "buyer" | "seller";
@@ -13,68 +13,69 @@ const sellerNav = [
     { href: "/dashboard/inbox", label: "Inbox", icon: Mail },
     { href: "/dashboard/startups", label: "My Startups", icon: Building2 },
     { href: "/dashboard/profile", label: "Profile", icon: User },
-    { href: "/dashboard/settings", label: "Settings", icon: SettingsIcon },
     { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
 ];
 
 const buyerNav = [
     { href: "/dashboard", label: "Overview", icon: Inbox },
-    { href: "/dashboard/interested", label: "Interested", icon: Heart },
+    { href: "/dashboard/matchmaking", label: "Matchmaking", icon: Flame },
+    { href: "/dashboard/interested", label: "Matches", icon: Heart },
     { href: "/dashboard/inbox", label: "Inbox", icon: Mail },
     { href: "/dashboard/profile", label: "Profile", icon: User },
-    { href: "/dashboard/settings", label: "Settings", icon: SettingsIcon },
     { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
 ];
 
-export default function Sidebar({ userEmail, avatarUrl, role }: { userEmail?: string; avatarUrl?: string | null; role: DashboardRole }) {
+export default function Sidebar({ userEmail, userName, avatarUrl, role }: { userEmail?: string; userName?: string | null; avatarUrl?: string | null; role: DashboardRole }) {
     const pathname = usePathname();
     const navItems = role === "seller" ? sellerNav : buyerNav;
 
     return (
         <aside style={{
-            width: 220,
-            flexShrink: 0,
-            backgroundColor: "var(--color-card)",
-            borderRight: "1px solid var(--color-border)",
+            width: 260,
             display: "flex",
             flexDirection: "column",
-            position: "fixed",
             height: "100vh",
+            position: "fixed",
             left: 0,
             top: 0,
-            zIndex: 40,
+            borderRight: "1px solid var(--sidebar-border)",
+            background: "var(--sidebar-bg)",
+            backdropFilter: "blur(28px) saturate(165%)",
+            boxShadow: "var(--sidebar-shadow)",
+            zIndex: 50
         }}>
             {/* Brand */}
-            <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid var(--color-border)" }}>
+            <div style={{ padding: "24px 20px 20px" }}>
                 <Link href="/" style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 8,
+                    gap: 10,
                     textDecoration: "none",
                     color: "var(--color-text)",
-                    fontWeight: 700,
-                    fontSize: 16,
+                    fontWeight: 800,
+                    fontSize: 17,
                 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--color-accent)", display: "inline-block" }} />
-                    Vetra
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--color-accent)" }} />
+                    ProvenMRR
                 </Link>
             </div>
 
             {/* Role toggle */}
-            <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--color-border)" }}>
-                <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2 }}>
+            <div style={{ padding: "0 16px 20px" }}>
+                <div style={{ display: "flex", background: "var(--sidebar-toggle-bg)", borderRadius: 12, padding: "4px", gap: "4px", border: "1px solid var(--sidebar-toggle-border)" }}>
                     <button 
                         onClick={() => setDashboardRole("buyer")}
                         style={{ 
                             flex: 1, 
-                            padding: "5px 0", 
-                            borderRadius: 6, 
-                            border: role === "buyer" ? "1px solid var(--color-border)" : "none", 
-                            background: role === "buyer" ? "white" : "transparent", 
+                            border: "none",
+                            padding: "6px 0", 
+                            borderRadius: "7px", 
+                            background: role === "buyer" ? "var(--sidebar-toggle-active-bg)" : "transparent", 
+                            boxShadow: role === "buyer" ? "var(--sidebar-toggle-active-shadow)" : "none",
                             fontSize: 12, 
-                            fontWeight: role === "buyer" ? 600 : 500, 
+                            fontWeight: 700, 
                             color: role === "buyer" ? "var(--color-text)" : "var(--color-secondary)", 
-                            cursor: "pointer" 
+                            cursor: "pointer",
                         }}
                     >
                         Buyer
@@ -83,14 +84,15 @@ export default function Sidebar({ userEmail, avatarUrl, role }: { userEmail?: st
                         onClick={() => setDashboardRole("seller")}
                         style={{ 
                             flex: 1, 
-                            padding: "5px 0", 
-                            borderRadius: 6, 
-                            border: role === "seller" ? "1px solid var(--color-border)" : "none", 
-                            background: role === "seller" ? "white" : "transparent", 
+                            border: "none",
+                            padding: "6px 0", 
+                            borderRadius: "7px", 
+                            background: role === "seller" ? "var(--sidebar-toggle-active-bg)" : "transparent", 
+                            boxShadow: role === "seller" ? "var(--sidebar-toggle-active-shadow)" : "none",
                             fontSize: 12, 
-                            fontWeight: role === "seller" ? 600 : 500, 
+                            fontWeight: 700, 
                             color: role === "seller" ? "var(--color-text)" : "var(--color-secondary)", 
-                            cursor: "pointer" 
+                            cursor: "pointer",
                         }}
                     >
                         Seller
@@ -99,7 +101,7 @@ export default function Sidebar({ userEmail, avatarUrl, role }: { userEmail?: st
             </div>
 
             {/* Nav */}
-            <nav style={{ flex: 1, padding: "12px 12px 0" }}>
+            <nav style={{ flex: 1, padding: "0 12px" }}>
                 {navItems.map(({ href, label, icon: Icon }) => {
                     const isActive = pathname === href || (pathname.startsWith("/dashboard/claim") && label === "My Startups");
                     return (
@@ -107,17 +109,19 @@ export default function Sidebar({ userEmail, avatarUrl, role }: { userEmail?: st
                             display: "flex",
                             alignItems: "center",
                             gap: 10,
-                            padding: "8px 12px",
+                            padding: "9px 12px",
                             borderRadius: 8,
                             marginBottom: 2,
                             fontSize: 13,
                             fontWeight: isActive ? 600 : 500,
                             color: isActive ? "var(--color-text)" : "var(--color-secondary)",
                             textDecoration: "none",
-                            background: isActive ? "#F3F4F6" : "transparent",
-                            transition: "background 0.12s, color 0.12s",
+                            background: isActive ? "var(--sidebar-nav-active-bg)" : "transparent",
+                            border: isActive ? "1px solid var(--sidebar-nav-active-border)" : "1px solid transparent",
+                            boxShadow: isActive ? "var(--sidebar-nav-active-shadow)" : "none",
+                            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                         }}>
-                            <Icon size={15} />
+                            <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
                             {label}
                         </Link>
                     );
@@ -125,21 +129,26 @@ export default function Sidebar({ userEmail, avatarUrl, role }: { userEmail?: st
             </nav>
 
             {/* User footer */}
-            <div style={{ padding: "12px 16px 16px", borderTop: "1px solid var(--color-border)" }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>Signed in as</p>
+            <div style={{ padding: "12px 16px 16px", marginTop: "auto" }}>
+                <p style={{ fontSize: 10, fontWeight: 800, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12, opacity: 0.6 }}>Signed in as</p>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                     {avatarUrl ? (
-                        <div style={{ width: 28, height: 28, borderRadius: "50%", overflow: "hidden", position: "relative", flexShrink: 0 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: "50%", overflow: "hidden", position: "relative", flexShrink: 0, border: "1px solid var(--sidebar-avatar-border)" }}>
                             <Image src={avatarUrl} alt="User Avatar" fill className="object-cover" unoptimized />
                         </div>
                     ) : (
-                        <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--color-accent)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", flexShrink: 0 }}>
-                            <User size={14} />
+                        <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--sidebar-avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", flexShrink: 0, boxShadow: "var(--sidebar-avatar-shadow)" }}>
+                            <User size={15} />
                         </div>
                     )}
-                    <p style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0 }}>
-                        {userEmail || "Founder"}
-                    </p>
+                    <div style={{ flex: 1, overflow: "hidden" }}>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0 }}>
+                            {userName || userEmail?.split('@')[0] || "Founder"}
+                        </p>
+                        <p style={{ fontSize: 11, color: "var(--color-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0 }}>
+                            {userEmail || "Connect profile"}
+                        </p>
+                    </div>
                 </div>
                 <form action="/auth/signout" method="POST">
                     <button type="submit" style={{
@@ -152,11 +161,11 @@ export default function Sidebar({ userEmail, avatarUrl, role }: { userEmail?: st
                         fontSize: 12,
                         fontWeight: 500,
                         color: "var(--color-secondary)",
-                        background: "transparent",
-                        border: "1px solid var(--color-border)",
-                        borderRadius: 8,
+                        background: "var(--sidebar-footer-bg)",
+                        border: "1px solid var(--sidebar-footer-border)",
+                        borderRadius: 10,
                         cursor: "pointer",
-                        transition: "color 0.12s",
+                        transition: "all 0.2s",
                     }}>
                         <LogOut size={13} />
                         Log out

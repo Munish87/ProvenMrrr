@@ -1,6 +1,6 @@
 import { CreditCard, Info } from "lucide-react";
 
-export const metadata = { title: "Billing — Vetra Dashboard" };
+export const metadata = { title: "Billing — ProvenMRR Dashboard" };
 
 export default function BillingPage() {
     return (
@@ -9,10 +9,10 @@ export default function BillingPage() {
                 <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-0.3px", marginBottom: 4 }}>
                     Billing
                 </h1>
-                <p style={{ fontSize: 14, color: "var(--color-secondary)" }}>Manage your invoices and payment methods.</p>
+                <p style={{ fontSize: 14, color: "var(--color-secondary)", fontWeight: 500 }}>Manage your invoices and payment methods.</p>
             </div>
 
-            <div className="card" style={{ padding: "24px 32px" }}>
+            <div className="card" style={{ padding: "32px 40px" }}>
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text)", marginBottom: 20 }}>Invoices & payments</h2>
                 
                 <div style={{ 
@@ -20,16 +20,16 @@ export default function BillingPage() {
                     alignItems: "flex-start", 
                     gap: 12, 
                     padding: "16px 20px", 
-                    background: "#F9FAFB", 
-                    borderRadius: 10, 
-                    border: "1px solid var(--color-border)" 
+                    background: "rgba(0,0,0,0.02)", 
+                    borderRadius: 12, 
+                    border: "1px solid rgba(0,0,0,0.05)" 
                 }}>
                     <div style={{ 
                         width: 32, 
                         height: 32, 
                         borderRadius: 6, 
-                        background: "white", 
-                        border: "1px solid var(--color-border)", 
+                        background: "rgba(0,0,0,0.03)",
+                        border: "1px solid rgba(0,0,0,0.05)",
                         display: "flex", 
                         alignItems: "center", 
                         justifyContent: "center",

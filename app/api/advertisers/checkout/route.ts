@@ -3,13 +3,17 @@ import Stripe from "stripe";
 
 export const runtime = "nodejs";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2026-02-25.clover",
-});
+const isDev = process.env.NODE_ENV !== "production";
+
+function getStripe() {
+    return new Stripe(process.env.STRIPE_SECRET_KEY!, {
+        apiVersion: "2023-10-16" as any,
+    });
+}
 
 const PRICES: Record<string, { unit_amount: number; name: string; days: number }> = {
-    weekly: { unit_amount: 4900, name: "Vetra Ad Slot — Weekly", days: 7 },
-    monthly: { unit_amount: 14900, name: "Vetra Ad Slot — Monthly", days: 30 },
+    weekly: { unit_amount: 4900, name: "ProvenMRR Ad Slot — Weekly", days: 7 },
+    monthly: { unit_amount: 14900, name: "ProvenMRR Ad Slot — Monthly", days: 30 },
 };
 
 export async function POST(req: Request) {
@@ -27,7 +31,7 @@ export async function POST(req: Request) {
 
         const origin = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-        const session = await stripe.checkout.sessions.create({
+        const session = await getStripe().checkout.sessions.create({
             payment_method_types: ["card"],
             mode: "payment",
             line_items: [
@@ -37,7 +41,7 @@ export async function POST(req: Request) {
                         unit_amount: price.unit_amount,
                         product_data: {
                             name: price.name,
-                            description: `Your sponsor ad will appear in rotation on Vetra for ${price.days} days.`,
+                            description: `Your sponsor ad will appear in rotation on ProvenMRR for ${price.days} days.`,
                         },
                     },
                     quantity: 1,
@@ -54,7 +58,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ url: session.url });
     } catch (err) {
-        console.error("[ad-checkout]", err);
+        if (isDev) console.error("[ad-checkout]", err);
         return NextResponse.json({ error: "Failed to create checkout session." }, { status: 500 });
     }
 }

@@ -1,5 +1,7 @@
 import Stripe from "stripe";
 
+const isDev = process.env.NODE_ENV !== "production";
+
 export interface RawStripeData {
     subscriptions: Stripe.Subscription[];
     charges: Stripe.Charge[];
@@ -25,7 +27,7 @@ export async function fetchStripeData(apiKey: string): Promise<RawStripeData> {
             .list({ limit: 100, status: "all", expand: ["data.items"] })
             .autoPagingToArray({ limit: 1000 });
     } catch (err: any) {
-        console.warn("[Stripe] Skipping subscriptions fetch. Permissions likely missing.", err.message);
+        if (isDev) console.warn("[Stripe] Skipping subscriptions fetch. Permissions likely missing.", err.message);
     }
 
     try {
@@ -33,7 +35,7 @@ export async function fetchStripeData(apiKey: string): Promise<RawStripeData> {
             .list({ limit: 100 })
             .autoPagingToArray({ limit: 2000 });
     } catch (err: any) {
-        console.warn("[Stripe] Skipping charges fetch. Permissions likely missing.", err.message);
+        if (isDev) console.warn("[Stripe] Skipping charges fetch. Permissions likely missing.", err.message);
     }
 
     let name = "Stripe Startup";
@@ -72,7 +74,7 @@ export async function fetchStripeData(apiKey: string): Promise<RawStripeData> {
             }
         } catch {
             if (subscriptions.length === 0 && charges.length === 0) {
-                console.warn("[Stripe] Invalid API Key or absolutely no read permissions granted for revenue calculation. Falling back to zero-state.");
+                if (isDev) console.warn("[Stripe] Invalid API Key or absolutely no read permissions granted for revenue calculation. Falling back to zero-state.");
             }
         }
     }

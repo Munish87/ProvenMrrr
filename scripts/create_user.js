@@ -13,7 +13,7 @@ const supabase = createClient(supabaseUrl, serviceKey, {
 });
 
 async function run() {
-    const email = 'demo@vetra.app';
+    const email = 'demo@provenmrr.com';
     const password = 'password123';
 
     // Create User via Admin API (bypasses rate limits and auto-confirms)

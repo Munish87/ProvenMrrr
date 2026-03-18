@@ -4,6 +4,9 @@ import { fetchStripeData } from "@/lib/stripe/fetcher";
 import { computeMetrics } from "@/lib/stripe/metrics";
 import { calculateHealthScore } from "@/lib/health-score/calculator";
 import { encryptApiKey } from "@/lib/crypto";
+import Stripe from "stripe";
+
+const isDev = process.env.NODE_ENV !== "production";
 
 export async function POST(request: NextRequest) {
     try {
@@ -79,6 +82,16 @@ export async function POST(request: NextRequest) {
         const metrics = computeMetrics(rawData);
         const healthResult = calculateHealthScore(metrics);
 
+        // ── Retrieve Stripe account ID for webhook filtering ──────────────────────
+        let stripeAccountId: string | null = null;
+        try {
+            const stripe = new Stripe(apiKey, { apiVersion: "2026-02-25.clover" as any });
+            const account = await stripe.accounts.retrieve();
+            stripeAccountId = account.id ?? null;
+        } catch {
+            // Non-fatal: account ID just won't be stored
+        }
+
         // ── Encrypt and store Stripe key (upsert) ─────────────────────────────────
         const encryptedKey = encryptApiKey(apiKey);
 
@@ -89,6 +102,7 @@ export async function POST(request: NextRequest) {
                     startup_id: startupId,
                     encrypted_api_key: encryptedKey,
                     last_synced_at: new Date().toISOString(),
+                    ...(stripeAccountId ? { stripe_account_id: stripeAccountId } : {}),
                 },
                 { onConflict: "startup_id" }
             );
@@ -149,7 +163,7 @@ export async function POST(request: NextRequest) {
             },
         });
     } catch (error) {
-        console.error("[stripe/connect] Error:", error);
+        if (isDev) console.error("[stripe/connect] Error:", error);
         return NextResponse.json(
             { error: "Internal server error" },
             { status: 500 }

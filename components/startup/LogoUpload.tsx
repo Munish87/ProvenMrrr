@@ -85,12 +85,16 @@ export function LogoUpload({ startupId, startupName, currentLogoUrl, onUploadSuc
             <div className="flex flex-col gap-2">
                 <div
                     onClick={() => !uploading && fileInputRef.current?.click()}
-                    className="group relative rounded-xl overflow-hidden cursor-pointer"
+                    className="group relative overflow-hidden cursor-pointer"
                     style={{
-                        width: 56,
-                        height: 56,
-                        background: previewUrl ? "transparent" : "#F3F4F6",
-                        border: previewUrl ? "none" : "2px dashed var(--color-border)",
+                        width: 64,
+                        height: 64,
+                        borderRadius: "50%",
+                        background: previewUrl
+                            ? "linear-gradient(180deg, rgba(214, 223, 230, 0.12), rgba(96, 103, 109, 0.08) 20%, rgba(26, 28, 28, 0.66) 62%, rgba(18, 19, 18, 0.88))"
+                            : "linear-gradient(180deg, rgba(214, 223, 230, 0.14), rgba(102, 108, 114, 0.08) 20%, rgba(26, 27, 27, 0.68) 62%, rgba(17, 18, 17, 0.9))",
+                        border: previewUrl ? "1px solid rgba(224, 232, 239, 0.18)" : "1px dashed rgba(224, 232, 239, 0.24)",
+                        boxShadow: "0 14px 26px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.16)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -98,15 +102,17 @@ export function LogoUpload({ startupId, startupName, currentLogoUrl, onUploadSuc
                 >
                     {/* Image View */}
                     {previewUrl ? (
-                        <Image
-                            src={previewUrl || ""}
-                            alt={`${startupName} logo`}
-                            fill
-                            className="object-cover"
-                            unoptimized
-                        />
+                        <div style={{ position: "absolute", inset: 4, borderRadius: "50%", overflow: "hidden" }}>
+                            <Image
+                                src={previewUrl || ""}
+                                alt={`${startupName} logo`}
+                                fill
+                                className="object-cover"
+                                unoptimized
+                            />
+                        </div>
                     ) : (
-                        <span style={{ fontSize: 22, fontWeight: 700, color: "var(--color-secondary)" }}>
+                        <span style={{ fontSize: 22, fontWeight: 800, color: "var(--color-text)" }}>
                             {startupName.charAt(0).toUpperCase()}
                         </span>
                     )}

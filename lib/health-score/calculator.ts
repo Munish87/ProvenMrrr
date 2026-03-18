@@ -1,5 +1,6 @@
 import type { ComputedMetrics } from "../stripe/metrics";
-import type { RiskLevel } from "../supabase/types";
+
+export type RiskLevel = "low" | "medium" | "high";
 
 export interface HealthScoreResult {
     score: number; // 0–100
@@ -109,11 +110,11 @@ function generateAiSummary(
                 : "Churn is elevated and should be a focus area for retention strategy.";
 
     return (
-        `This startup has a Vetra Health Score of ${score}/100, reflecting ${riskDesc}. ` +
+        `This startup has a ProvenMRR Health Score of ${score}/100, reflecting ${riskDesc}. ` +
         `Monthly Recurring Revenue stands at ${mrrFmt}, trending ${growthDir} ${growthAbs}% month-over-month. ` +
         `${churnComment} ` +
         `With ${m.customerCount} active customers and a revenue volatility index of ${m.volatilityScore.toFixed(1)}, ` +
         `the business ${score >= 70 ? "demonstrates investor-grade predictability" : score >= 40 ? "shows potential with room for improvement" : "faces challenges that should be addressed before scaling"}. ` +
-        `[AI insights powered by Vetra — advanced analysis available in Premium]`
+        `[AI insights powered by ProvenMRR — advanced analysis available in Premium]`
     );
 }

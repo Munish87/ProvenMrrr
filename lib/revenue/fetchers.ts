@@ -55,8 +55,8 @@ export async function fetchProviderData(
     if (provider === "dodopayments" && !apiKey.startsWith("dp_")) {
         throw new Error("Invalid Dodo Payments API key format. Must start with dp_");
     }
-    if (provider === "paddle" && !apiKey.startsWith("pad_")) {
-        throw new Error("Invalid Paddle API key format. Must start with pad_");
+    if (provider === "paddle" && !apiKey.startsWith("pdl_")) {
+        throw new Error("Invalid Paddle API key format. Must start with pdl_");
     }
     if (provider === "revenuecat" && (!apiKey || apiKey.length < 20)) {
         throw new Error("Invalid RevenueCat API key.");
@@ -139,6 +139,7 @@ function generateSimulatedMetrics(apiKey: string, provider: string): ComputedMet
     return {
         mrr,
         arr,
+        last30DaysRevenue: mrr, // Simulate roughly 100% of MRR
         allTimeRevenue,
         momGrowthRate,
         churnRate,

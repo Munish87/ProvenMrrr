@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import OfferConversation from "@/components/dashboard/OfferConversation";
 import { cookies } from "next/headers";
 
-export const metadata = { title: "Inbox — Vetra" };
+export const metadata = { title: "Inbox — ProvenMRR" };
 
 interface SearchParams {
     id?: string;
@@ -37,7 +37,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
         .from("offers")
         .select(`
             *,
-            startup:startups!inner(id, name, owner_id),
+            startup:startups!inner(id, name, owner_id, is_anonymous),
             buyer:users!offers_buyer_id_fkey(email, name),
             messages:offer_messages(
                 id,
@@ -71,12 +71,12 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
         <div
             style={{
                 display: "flex",
-                height: "calc(100vh - 80px)",
-                background: "#F8F9FB",
-                borderRadius: 24,
+                height: "calc(100vh - 120px)",
+                background: "var(--color-surface)",
+                borderRadius: 28,
                 overflow: "hidden",
-                border: "1px solid #EAECF0",
-                boxShadow: "0 4px 32px rgba(0,0,0,0.06)",
+                border: "1px solid var(--color-border)",
+                boxShadow: "var(--shadow-card)",
             }}
         >
             {/* ─── Left Sidebar ─────────────────────────────────── */}
@@ -86,40 +86,40 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                     flexShrink: 0,
                     display: "flex",
                     flexDirection: "column",
-                    borderRight: "1px solid #EAECF0",
-                    background: "#FFFFFF",
+                    borderRight: "1px solid var(--color-border)",
+                    background: "var(--glass-bg)",
                 }}
             >
                 {/* Header */}
                 <div
                     style={{
-                        padding: "24px 20px 16px 20px",
-                        borderBottom: "1px solid #F2F4F7",
+                        padding: "24px 20px 16px",
+                        borderBottom: "1px solid var(--color-border)",
                     }}
                 >
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px", color: "#0F1117" }}>
+                        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--color-text)" }}>
                             Messages
                         </h2>
                         {/* Role pill */}
                         <span
                             style={{
-                                fontSize: 10,
+                                fontSize: 9,
                                 fontWeight: 800,
                                 textTransform: "uppercase",
-                                letterSpacing: "0.08em",
-                                color: accentText,
-                                background: accentBg,
-                                padding: "4px 10px",
-                                borderRadius: 999,
-                                border: `1px solid ${accentHex}22`,
+                                letterSpacing: "0.06em",
+                                color: role === "seller" ? "#b9c8ff" : "#9df0c9",
+                                background: role === "seller" ? "rgba(99, 102, 241, 0.12)" : "rgba(16, 185, 129, 0.12)",
+                                padding: "3px 10px",
+                                borderRadius: 6,
+                                border: `1px solid ${role === "seller" ? "rgba(99, 102, 241, 0.2)" : "rgba(16, 185, 129, 0.2)"}`,
                             }}
                         >
                             {isSeller ? "Seller" : "Buyer"}
                         </span>
                     </div>
-                    <p style={{ margin: "6px 0 0", fontSize: 12, color: "#9EA3AE", fontWeight: 500 }}>
-                        {offers?.length || 0} conversation{(offers?.length || 0) !== 1 ? "s" : ""}
+                    <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--color-secondary)", fontWeight: 500 }}>
+                        {offers?.length || 0} {offers?.[0]?.status === 'cofounder' ? 'connection' : 'conversation'}{(offers?.length || 0) !== 1 ? "s" : ""}
                     </p>
                 </div>
 
@@ -142,16 +142,16 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                                     width: 48,
                                     height: 48,
                                     borderRadius: 14,
-                                    background: "#F2F4F7",
+                                    background: "var(--color-surface)",
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "center",
                                     marginBottom: 12,
                                 }}
                             >
-                                <Mail size={20} color="#C5C8D0" strokeWidth={1.5} />
+                                <Mail size={20} color="var(--color-muted)" strokeWidth={1.5} />
                             </div>
-                            <p style={{ fontSize: 13, color: "#9EA3AE", fontWeight: 600, margin: 0 }}>No conversations yet</p>
+                            <p style={{ fontSize: 14, color: "var(--color-secondary)", fontWeight: 700, margin: 0, letterSpacing: "0.05em" }}>NO MESSAGES YET</p>
                         </div>
                     ) : (
                         offers?.map((offer) => {
@@ -175,29 +175,29 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                                             display: "flex",
                                             alignItems: "center",
                                             gap: 12,
-                                            padding: "14px 20px",
-                                            background: isActive ? accentBg : "transparent",
+                                            padding: "16px 20px",
+                                            background: isActive ? "color-mix(in srgb, var(--color-accent) 10%, transparent)" : "transparent",
                                             borderLeft: isActive ? `3px solid ${accentHex}` : "3px solid transparent",
-                                            borderBottom: "1px solid #F2F4F7",
-                                            transition: "background 0.15s",
+                                            borderBottom: "1px solid var(--color-stroke-soft)",
+                                            transition: "all 0.2s",
                                             cursor: "pointer",
                                         }}
                                     >
                                         {/* Avatar */}
                                         <div
                                             style={{
-                                                width: 44,
-                                                height: 44,
+                                                width: 48,
+                                                height: 48,
                                                 borderRadius: 14,
-                                                background: isActive ? accentHex : "#F2F4F7",
-                                                color: isActive ? "#FFFFFF" : "#6B7280",
+                                                background: isActive ? accentHex : "var(--color-surface-strong)",
+                                                color: isActive ? "white" : "var(--color-text)",
                                                 display: "flex",
                                                 alignItems: "center",
                                                 justifyContent: "center",
                                                 fontSize: 16,
                                                 fontWeight: 800,
                                                 flexShrink: 0,
-                                                transition: "background 0.15s, color 0.15s",
+                                                transition: "background 0.15s, color 0.15s"
                                             }}
                                         >
                                             {startupInitial}
@@ -208,18 +208,19 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
                                                 <span
                                                     style={{
-                                                        fontSize: 13,
+                                                        fontSize: 14,
                                                         fontWeight: 700,
-                                                        color: isActive ? accentText : "#0F1117",
+                                                        color: "var(--color-text)",
                                                         whiteSpace: "nowrap",
                                                         overflow: "hidden",
                                                         textOverflow: "ellipsis",
                                                         maxWidth: "65%",
+                                                        filter: (offer.startup?.is_anonymous && !isSeller) ? "blur(5px)" : "none"
                                                     }}
                                                 >
                                                     {otherPartyName}
                                                 </span>
-                                                <span style={{ fontSize: 10, color: "#B0B7C3", fontWeight: 600, flexShrink: 0 }}>
+                                                <span style={{ fontSize: 10, color: "var(--color-secondary)", fontWeight: 700, flexShrink: 0 }}>
                                                     {timeLabel}
                                                 </span>
                                             </div>
@@ -227,8 +228,8 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                                                 <p
                                                     style={{
                                                         margin: 0,
-                                                        fontSize: 12,
-                                                        color: "#9EA3AE",
+                                                        fontSize: 13,
+                                                        color: "var(--color-secondary)",
                                                         whiteSpace: "nowrap",
                                                         overflow: "hidden",
                                                         textOverflow: "ellipsis",
@@ -238,19 +239,22 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                                                 >
                                                     {preview}
                                                 </p>
-                                                <span
-                                                    style={{
-                                                        fontSize: 10,
-                                                        fontWeight: 700,
-                                                        color: accentText,
-                                                        background: accentBg,
-                                                        padding: "2px 7px",
-                                                        borderRadius: 999,
-                                                        flexShrink: 0,
-                                                    }}
-                                                >
-                                                    ${Number(offer.amount).toLocaleString()}
-                                                </span>
+                                                {offer.status !== 'cofounder' && (
+                                                    <span
+                                                        style={{
+                                                            fontSize: 10,
+                                                            fontWeight: 700,
+                                                            color: "var(--color-text)",
+                                                            background: isActive ? "color-mix(in srgb, var(--color-accent) 10%, transparent)" : "color-mix(in srgb, var(--color-text) 4%, transparent)",
+                                                            padding: "3px 8px",
+                                                            borderRadius: 6,
+                                                            border: "1px solid var(--color-border)",
+                                                            flexShrink: 0,
+                                                        }}
+                                                    >
+                                                        ${Number(offer.amount).toLocaleString()}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -262,7 +266,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
             </div>
 
             {/* ─── Right Pane ───────────────────────────────────── */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: "#FAFBFC" }}>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: "var(--glass-bg-strong)" }}>
                 {activeOffer ? (
                     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
                         {/* Conversation Header */}
@@ -272,27 +276,27 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                                 alignItems: "center",
                                 justifyContent: "space-between",
                                 padding: "16px 24px",
-                                background: "#FFFFFF",
-                                borderBottom: "1px solid #EAECF0",
+                                background: "var(--color-surface)",
+                                borderBottom: "1px solid var(--color-border)",
                                 gap: 16,
                             }}
                         >
-                            <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
-                                {/* Large avatar */}
+                            <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                                {/* Small square avatar */}
                                 <div
                                     style={{
-                                        width: 48,
-                                        height: 48,
-                                        borderRadius: 16,
+                                        width: 36,
+                                        height: 36,
+                                        borderRadius: 8,
                                         background: accentHex,
                                         color: "#FFFFFF",
                                         display: "flex",
                                         alignItems: "center",
                                         justifyContent: "center",
-                                        fontSize: 20,
+                                        fontSize: 16,
                                         fontWeight: 800,
                                         flexShrink: 0,
-                                        boxShadow: `0 4px 14px ${accentHex}44`,
+                                        filter: (activeOffer.startup?.is_anonymous && !isSeller) ? "blur(4px)" : "none"
                                     }}
                                 >
                                     {activeOffer.startup?.name?.charAt(0)?.toUpperCase()}
@@ -302,38 +306,42 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                                     <h3
                                         style={{
                                             margin: 0,
-                                            fontSize: 16,
-                                            fontWeight: 800,
-                                            color: "#0F1117",
-                                            letterSpacing: "-0.3px",
+                                            fontSize: 15,
+                                            fontWeight: 700,
+                                            color: "var(--color-text)",
                                             whiteSpace: "nowrap",
                                             overflow: "hidden",
                                             textOverflow: "ellipsis",
+                                            filter: (activeOffer.startup?.is_anonymous && !isSeller) ? "blur(6px)" : "none"
                                         }}
                                     >
                                         {activeOffer.startup?.name}
                                     </h3>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
                                         {/* Role badge */}
                                         <span
                                             style={{
-                                                fontSize: 9,
+                                                fontSize: 8,
                                                 fontWeight: 800,
                                                 textTransform: "uppercase",
-                                                letterSpacing: "0.08em",
-                                                color: accentText,
-                                                background: accentBg,
-                                                padding: "3px 8px",
-                                                borderRadius: 999,
-                                                border: `1px solid ${accentHex}22`,
+                                                letterSpacing: "0.05em",
+                                                color: role === "seller" ? "#b9c8ff" : "#9df0c9",
+                                                background: role === "seller" ? "rgba(99, 102, 241, 0.12)" : "rgba(16, 185, 129, 0.12)",
+                                                padding: "2px 8px",
+                                                borderRadius: 4,
+                                                border: `1px solid ${role === "seller" ? "rgba(99, 102, 241, 0.18)" : "rgba(16, 185, 129, 0.18)"}`,
                                             }}
                                         >
-                                            {isSeller ? "Seller view" : "Buyer view"}
+                                            {activeOffer.status === 'cofounder' 
+                                                ? (isSeller ? "Founder view" : "Interested view")
+                                                : (isSeller ? "Seller view" : "Buyer view")
+                                            }
                                         </span>
-                                        <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#D1D5DB", flexShrink: 0 }} />
-                                        <span style={{ fontSize: 12, color: "#6B7280", fontWeight: 600 }}>
-                                            Offer: <strong style={{ color: "#0F1117" }}>${Number(activeOffer.amount).toLocaleString()}</strong>
-                                        </span>
+                                        {activeOffer.status !== 'cofounder' && (
+                                            <span style={{ fontSize: 12, color: "var(--color-secondary)", fontWeight: 500 }}>
+                                                - Offer: <strong style={{ color: "var(--color-text)", fontWeight: 700 }}>${Number(activeOffer.amount).toLocaleString()}</strong>
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -341,23 +349,16 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                             {/* View Listing button */}
                             <Link
                                 href={`/startup/${activeOffer.startup?.id}`}
+                                className="btn btn-secondary btn-sm"
                                 style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 6,
-                                    padding: "8px 16px",
-                                    background: "#F2F4F7",
-                                    color: "#374151",
-                                    borderRadius: 12,
-                                    fontSize: 12,
-                                    fontWeight: 700,
-                                    textDecoration: "none",
-                                    flexShrink: 0,
-                                    transition: "background 0.15s",
-                                    border: "1px solid #EAECF0",
+                                    height: 32,
+                                    padding: "0 12px",
+                                    fontSize: 11,
+                                    borderRadius: 8,
+                                    fontWeight: 700
                                 }}
                             >
-                                <ExternalLink size={13} strokeWidth={2.5} />
+                                <ExternalLink size={12} />
                                 View Listing
                             </Link>
                         </div>
@@ -392,22 +393,23 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                     >
                         <div
                             style={{
-                                width: 80,
-                                height: 80,
-                                borderRadius: 24,
-                                background: "#F2F4F7",
+                                width: 96,
+                                height: 96,
+                                borderRadius: 32,
+                                background: "var(--color-surface)",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                marginBottom: 20,
+                                marginBottom: 24,
+                                border: "1px solid var(--color-border)"
                             }}
                         >
-                            <Mail size={32} color="#D1D5DB" strokeWidth={1.5} />
+                            <Mail size={32} color="var(--color-muted)" strokeWidth={1.5} />
                         </div>
-                        <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 800, color: "#0F1117", letterSpacing: "-0.3px" }}>
+                        <h3 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-0.5px" }}>
                             {hasOffers ? "Select a conversation" : "No messages yet"}
                         </h3>
-                        <p style={{ margin: 0, fontSize: 13, color: "#9EA3AE", fontWeight: 500, maxWidth: 220 }}>
+                        <p style={{ margin: 0, fontSize: 14, color: "var(--color-secondary)", fontWeight: 600, maxWidth: 260, lineHeight: 1.5 }}>
                             {hasOffers
                                 ? "Choose a conversation from the list to view it"
                                 : isSeller

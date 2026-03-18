@@ -1,13 +1,22 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Plus, Building2, Save, Trash2, Globe, Sparkles } from "lucide-react";
+import { Plus, Building2, Save, Globe } from "lucide-react";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { LogoUpload } from "@/components/startup/LogoUpload";
 import { DashboardAddButton } from "@/components/startup/DashboardAddButton";
 import { AnonymityToggle } from "@/components/startup/AnonymityToggle";
+import { CoFounderToggle } from "@/components/startup/CoFounderToggle";
+import { HideRevenueToggle } from "@/components/startup/HideRevenueToggle";
+import { CategoryTechSelect } from "@/components/startup/CategoryTechSelect";
+import { ListingBanner } from "@/components/startup/ListingBanner";
+import { ListingToggle } from "@/components/startup/ListingToggle";
+import { DeleteStartupButton } from "@/components/startup/DeleteStartupButton";
+import { SoldToggle } from "@/components/startup/SoldToggle";
+import { StatusBadge } from "@/components/startup/StatusBadge";
+import { slugify } from "@/lib/categories";
 
-export const metadata = { title: "My Startups — Vetra Dashboard" };
+export const metadata = { title: "My Startups — ProvenMRR Dashboard" };
 
 export default async function DashboardStartupsPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
     const supabase = await createClient();
@@ -17,20 +26,22 @@ export default async function DashboardStartupsPage({ searchParams }: { searchPa
     const { id: selectedId } = await searchParams;
 
     const { data: startups } = await supabase.from("startups").select("*").eq("owner_id", user.id).order("created_at", { ascending: false })
-        .returns<{ id: string; name: string; description: string | null; website_url: string | null; category: string | null; country: string | null; is_listed_for_sale: boolean; is_anonymous: boolean; insights: any; tags: string[]; logo_url: string | null; asking_price: number | null; profit_margin_30d: number | null; contact_email: string | null; }[]>();
+        .returns<{ id: string; name: string; description: string | null; website_url: string | null; category: string | null; tech_stack: string[] | null; country: string | null; is_listed_for_sale: boolean; listing_fee_paid: boolean; is_anonymous: boolean; looking_for_cofounder: boolean; hide_real_time_revenue: boolean; insights: any; tags: string[]; logo_url: string | null; asking_price: number | null; profit_margin_30d: number | null; contact_email: string | null; sale_status_override: string | null; }[]>();
     const activeStartup = startups?.find((s) => s.id === selectedId) || startups?.[0];
 
     async function updateStartup(formData: FormData) {
         "use server";
         const supabaseServer = await createClient();
+        const { data: { user: currentUser } } = await supabaseServer.auth.getUser();
         const id = formData.get("id") as string;
-        if (!id) return;
+        if (!id || !currentUser) return;
 
         const insights = {
             value_proposition: formData.get("value_proposition") as string,
             problem_solved: formData.get("problem_solved") as string,
             pricing: formData.get("pricing") as string,
             business_model: formData.get("business_model") as string,
+            tech_stack: JSON.parse((formData.get("tech_stack") as string) || "[]")
         };
         const tagsRaw = formData.get("tags") as string;
         const tags = tagsRaw.split(",").map(t => t.trim()).filter(t => t.length > 0).slice(0, 3);
@@ -45,31 +56,140 @@ export default async function DashboardStartupsPage({ searchParams }: { searchPa
             profit_margin_30d: formData.get("profit_margin_30d") ? Number(formData.get("profit_margin_30d")) : null,
             contact_email: formData.get("contact_email") as string,
             is_anonymous: formData.get("is_anonymous") === "true",
+            looking_for_cofounder: formData.get("looking_for_cofounder") === "true",
+            hide_real_time_revenue: formData.get("hide_real_time_revenue") === "true",
+            sale_status_override: formData.get("sale_status_override") === "sold" ? "sold" : null,
+            is_listed_for_sale: formData.get("sale_status_override") === "sold" ? false : undefined,
             insights,
             tags
         };
+
+        const filteredPayload = Object.fromEntries(
+            Object.entries(payload).filter(([_, v]) => v !== undefined)
+        );
+
         // @ts-ignore
-        await supabaseServer.from("startups").update(payload).eq("id", id);
+        const { error } = await supabaseServer.from("startups").update(filteredPayload).eq("id", id).eq("owner_id", currentUser.id);
+        if (error) {
+            console.error("FAIL TO UPDATE:", error.message);
+        }
+        revalidatePath("/");
+        revalidatePath("/browse");
+        revalidatePath("/recent");
+        revalidatePath("/stats");
+        if (payload.category) {
+            revalidatePath(`/category/${slugify(payload.category)}`);
+        }
         revalidatePath("/dashboard/startups");
         revalidatePath(`/startup/${id}`);
     }
 
-    async function toggleForSale(formData: FormData) {
+    async function handleToggleForSale(id: string, currentStatus: boolean, markListingAsPaid = false) {
         "use server";
         const supabaseServer = await createClient();
-        const id = formData.get("id") as string;
-        const currentStatus = formData.get("current_status") === "true";
-        const payload = { is_listed_for_sale: !currentStatus };
+        const { data: { user: currentUser } } = await supabaseServer.auth.getUser();
+        if (!currentUser) return;
+        const { data: existingStartup } = await supabaseServer
+            .from("startups")
+            .select("category")
+            .eq("id", id)
+            .eq("owner_id", currentUser.id)
+            .maybeSingle();
+
+        const payload = {
+            is_listed_for_sale: !currentStatus,
+            ...(!currentStatus ? {} : { sale_status_override: null }),
+            ...(markListingAsPaid ? { listing_fee_paid: true } : {}),
+        };
         // @ts-ignore
-        await supabaseServer.from("startups").update(payload).eq("id", id);
+        await supabaseServer.from("startups").update(payload).eq("id", id).eq("owner_id", currentUser.id);
+        revalidatePath("/");
+        revalidatePath("/browse");
+        revalidatePath("/recent");
+        revalidatePath("/stats");
+        if (existingStartup?.category) {
+            revalidatePath(`/category/${slugify(existingStartup.category)}`);
+        }
+        revalidatePath(`/startup/${id}`);
+        revalidatePath("/dashboard/startups");
+    }
+
+    async function handleToggleSold(id: string, nextValue: boolean) {
+        "use server";
+        const supabaseServer = await createClient();
+        const { data: { user: currentUser } } = await supabaseServer.auth.getUser();
+        if (!currentUser) {
+            throw new Error("You must be signed in to update sold status.");
+        }
+
+        const { data: existingStartup } = await supabaseServer
+            .from("startups")
+            .select("category")
+            .eq("id", id)
+            .eq("owner_id", currentUser.id)
+            .maybeSingle();
+
+        const { error } = await supabaseServer
+            .from("startups")
+            .update({ 
+                sale_status_override: nextValue ? "sold" : null,
+                ...(nextValue ? { is_listed_for_sale: false } : {})
+            })
+            .eq("id", id)
+            .eq("owner_id", currentUser.id);
+
+        if (error) {
+            throw new Error(
+                `Couldn't save sold status. ${error.message} If this is a new field, apply supabase/migrations/014_manual_sale_status.sql first.`
+            );
+        }
+
+        revalidatePath("/");
+        revalidatePath("/browse");
+        revalidatePath("/recent");
+        revalidatePath("/stats");
+        if (existingStartup?.category) {
+            revalidatePath(`/category/${slugify(existingStartup.category)}`);
+        }
+        revalidatePath(`/startup/${id}`);
         revalidatePath("/dashboard/startups");
     }
 
     async function deleteStartup(formData: FormData) {
         "use server";
         const supabaseServer = await createClient();
+        const adminSupabase = createAdminClient();
+        const { data: { user: currentUser } } = await supabaseServer.auth.getUser();
         const id = formData.get("id") as string;
-        await supabaseServer.from("startups").delete().eq("id", id);
+        if (!id || !currentUser) return;
+
+        const { data: ownedStartup } = await supabaseServer
+            .from("startups")
+            .select("id")
+            .eq("id", id)
+            .eq("owner_id", currentUser.id)
+            .maybeSingle();
+
+        if (!ownedStartup) return;
+
+        const { data: startupOffers } = await adminSupabase
+            .from("offers")
+            .select("id")
+            .eq("startup_id", id);
+
+        const offerIds = (startupOffers || []).map((offer) => offer.id);
+
+        if (offerIds.length > 0) {
+            await adminSupabase.from("offer_messages").delete().in("offer_id", offerIds);
+        }
+
+        await adminSupabase.from("buyer_interactions").delete().eq("startup_id", id);
+        await adminSupabase.from("watchlists").delete().eq("startup_id", id);
+        await adminSupabase.from("offers").delete().eq("startup_id", id);
+        await adminSupabase.from("health_scores").delete().eq("startup_id", id);
+        await adminSupabase.from("revenue_snapshots").delete().eq("startup_id", id);
+        await adminSupabase.from("stripe_connections").delete().eq("startup_id", id);
+        await adminSupabase.from("startups").delete().eq("id", id).eq("owner_id", currentUser.id);
         revalidatePath("/dashboard/startups");
         redirect("/dashboard/startups");
     }
@@ -78,16 +198,16 @@ export default async function DashboardStartupsPage({ searchParams }: { searchPa
         <div style={{ maxWidth: 1100, display: "flex", gap: 24, height: "calc(100vh - 96px)" }}>
             {/* Left — Startup List */}
             <div style={{ width: 280, flexShrink: 0, display: "flex", flexDirection: "column" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                    <h1 style={{ fontSize: 18, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-0.3px" }}>Startups</h1>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                    <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-0.5px" }}>Startups</h1>
                     <DashboardAddButton />
                 </div>
 
                 <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
                     {!startups || startups.length === 0 ? (
-                        <div className="card" style={{ textAlign: "center", padding: "40px 16px", border: "2px dashed var(--color-border)" }}>
-                            <Building2 size={24} color="var(--color-border)" style={{ margin: "0 auto 8px" }} />
-                            <p style={{ fontSize: 13, color: "var(--color-secondary)" }}>No startups yet.</p>
+                        <div className="card" style={{ textAlign: "center", padding: "48px 20px", border: "1px dashed rgba(224, 232, 239, 0.18)" }}>
+                            <Building2 size={32} color="var(--color-secondary)" style={{ opacity: 0.3, margin: "0 auto 12px" }} />
+                            <p style={{ fontSize: 14, color: "var(--color-secondary)", fontWeight: 600 }}>No startups yet.</p>
                         </div>
                     ) : (
                         startups.map((s) => {
@@ -95,18 +215,25 @@ export default async function DashboardStartupsPage({ searchParams }: { searchPa
                             return (
                                 <Link key={s.id} href={`/dashboard/startups?id=${s.id}`} style={{ textDecoration: "none", display: "block" }}>
                                     <div style={{
-                                        padding: "12px 16px",
-                                        borderRadius: 10,
-                                        border: `1px solid ${isActive ? "var(--color-accent)" : "var(--color-border)"}`,
-                                        background: isActive ? "#EEF2FF" : "white",
+                                        padding: "14px 16px",
+                                        borderRadius: 18,
+                                        background: s.sale_status_override === "sold" 
+                                            ? "var(--listing-card-sold-bg)" 
+                                            : (isActive 
+                                                ? "color-mix(in srgb, var(--color-accent) 10%, var(--color-surface))"
+                                                : "var(--color-surface)"),
+                                        boxShadow: s.sale_status_override === "sold" ? "var(--listing-card-sold-shadow)" : "var(--shadow-card)",
+                                        border: s.sale_status_override === "sold"
+                                            ? "1px solid var(--listing-card-sold-border)"
+                                            : `1px solid ${isActive ? "color-mix(in srgb, var(--color-accent) 30%, transparent)" : "var(--color-border)"}`,
                                         cursor: "pointer",
-                                        transition: "border-color 0.12s, background 0.12s",
+                                        transition: "all 0.15s ease",
                                     }}>
-                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-                                            <p style={{ fontSize: 14, fontWeight: 600, color: isActive ? "var(--color-accent)" : "var(--color-text)" }}>{s.name}</p>
-                                            {s.is_listed_for_sale && <span className="tag-forsale" style={{ fontSize: 9 }}>For Sale</span>}
+                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
+                                            <p style={{ fontSize: 13, fontWeight: 700, color: s.sale_status_override === "sold" ? "#fff" : "var(--color-text)" }}>{s.name}</p>
+                                            {(s.is_listed_for_sale || s.sale_status_override === "sold") && <StatusBadge status={s.sale_status_override === "sold" ? "sold" : "sale"} />}
                                         </div>
-                                        <p style={{ fontSize: 12, color: "var(--color-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                        <p style={{ fontSize: 11, color: s.sale_status_override === "sold" ? "rgba(255,255,255,0.7)" : "var(--color-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>
                                             {s.description || "No description"}
                                         </p>
                                     </div>
@@ -119,42 +246,28 @@ export default async function DashboardStartupsPage({ searchParams }: { searchPa
 
             {/* Right — Edit Form */}
             {activeStartup ? (
-                <div style={{ flex: 1, overflowY: "auto", paddingBottom: 32 }}>
+                <div style={{ flex: 1, minWidth: 0, overflowY: "auto", paddingBottom: 32 }}>
                     {/* For Sale banner */}
-                    <div style={{
-                        marginBottom: 16,
-                        padding: "14px 20px",
-                        borderRadius: 10,
-                        border: `1px solid ${activeStartup.is_listed_for_sale ? "#FDE047" : "var(--color-border)"}`,
-                        background: activeStartup.is_listed_for_sale ? "#FEF9C3" : "white",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                    }}>
-                        <div>
-                            <p style={{ fontSize: 14, fontWeight: 600, color: activeStartup.is_listed_for_sale ? "#A16207" : "var(--color-text)" }}>
-                                {activeStartup.is_listed_for_sale ? "💰 Listed for sale" : "Sell your startup?"}
-                            </p>
-                            <p style={{ fontSize: 12, color: activeStartup.is_listed_for_sale ? "#A16207" : "var(--color-secondary)", marginTop: 2, opacity: 0.8 }}>
-                                {activeStartup.is_listed_for_sale
-                                    ? "Buyers can now see this listing."
-                                    : "List securely through Vetra and reach thousands of verified buyers."}
-                            </p>
-                        </div>
-                        <form action={toggleForSale}>
-                            <input type="hidden" name="id" value={activeStartup.id} />
-                            <input type="hidden" name="current_status" value={activeStartup.is_listed_for_sale.toString()} />
-                            <button type="submit" className={activeStartup.is_listed_for_sale ? "btn btn-secondary btn-sm" : "btn btn-primary btn-sm"}>
-                                {activeStartup.is_listed_for_sale ? "Delist" : "List for sale"}
-                            </button>
-                        </form>
-                    </div>
+                        <ListingBanner 
+                        id={activeStartup.id}
+                        name={activeStartup.name}
+                        isListedForSale={activeStartup.is_listed_for_sale}
+                        hasPaidListing={activeStartup.listing_fee_paid}
+                        onToggle={handleToggleForSale}
+                    />
 
-                    <div className="card">
-                        <form action={updateStartup}>
+                    <div
+                        className="card"
+                        style={{
+                            background: "var(--color-surface)",
+                            border: "1px solid var(--color-border)",
+                            boxShadow: "var(--shadow-card)",
+                        }}
+                    >
+                        <form key={activeStartup.id} action={updateStartup}>
                             <input type="hidden" name="id" value={activeStartup.id} />
 
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid var(--color-border)" }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid rgba(224, 232, 239, 0.1)" }}>
                                 <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--color-text)" }}>Edit &quot;{activeStartup.name}&quot;</h2>
                                 <div style={{ display: "flex", gap: 8 }}>
                                     <Link href={`/startup/${activeStartup.id}`} target="_blank" className="btn btn-secondary btn-sm" style={{ display: "flex", alignItems: "center", gap: 6, textDecoration: "none" }}>
@@ -185,38 +298,48 @@ export default async function DashboardStartupsPage({ searchParams }: { searchPa
                                     </div>
                                 </div>
 
+                                <CoFounderToggle initialValue={activeStartup.looking_for_cofounder || false} />
+
                                 <AnonymityToggle initialValue={activeStartup.is_anonymous} />
+
+                                <HideRevenueToggle initialValue={activeStartup.hide_real_time_revenue || false} />
+
+                                <ListingToggle 
+                                    id={activeStartup.id}
+                                    name={activeStartup.name}
+                                    initialValue={activeStartup.is_listed_for_sale}
+                                    initialHasPaidListing={activeStartup.listing_fee_paid}
+                                    onToggle={handleToggleForSale}
+                                />
+
+                                {(activeStartup.is_listed_for_sale || activeStartup.sale_status_override === "sold") && (
+                                    <SoldToggle
+                                        id={activeStartup.id}
+                                        initialValue={activeStartup.sale_status_override === "sold"}
+                                        onToggle={handleToggleSold}
+                                    />
+                                )}
 
                                 {/* Description */}
                                 <div>
-                                    <label className="field-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                        Description
-                                        <span style={{ fontSize: 11, color: "var(--color-accent)", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-                                            <Sparkles size={11} /> Auto-write
-                                        </span>
-                                    </label>
+                                    <label className="field-label">Description</label>
                                     <textarea id="description" name="description" rows={3} defaultValue={activeStartup.description || ""} className="field-input" placeholder="What does your startup do?" />
                                 </div>
 
-                                {/* URL + Category */}
+                                {/* URL + Category + Tech Stack */}
                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                                     <div>
                                         <label htmlFor="website_url" className="field-label">Website URL</label>
                                         <input id="website_url" name="website_url" type="url" defaultValue={activeStartup.website_url || ""} className="field-input" placeholder="https://" />
                                     </div>
-                                    <div>
-                                        <label htmlFor="category" className="field-label">Category</label>
-                                        <select id="category" name="category" defaultValue={activeStartup.category || ""} className="field-input" style={{ background: "white", cursor: "pointer" }}>
-                                            <option value="">Select...</option>
-                                            <option value="SaaS">SaaS</option>
-                                            <option value="Developer Tools">Developer Tools</option>
-                                            <option value="AI">AI</option>
-                                            <option value="E-commerce">E-commerce</option>
-                                            <option value="Fintech">Fintech</option>
-                                            <option value="Other">Other</option>
-                                        </select>
+                                    <div style={{ alignSelf: "flex-end" }}>
+                                        {/* Will render full width inside this column area conceptually, but let's just make it span 2 if we want to mimic screenshot. Actually let's make it span 2 columns if tech stack is involved. */}
                                     </div>
                                 </div>
+                                <CategoryTechSelect 
+                                    defaultCategory={activeStartup.category} 
+                                    defaultTechStack={activeStartup.insights?.tech_stack || []} 
+                                />
 
                                 {/* Location */}
                                 <div>
@@ -232,7 +355,7 @@ export default async function DashboardStartupsPage({ searchParams }: { searchPa
 
                                 {/* Sale Details */}
                                 {activeStartup.is_listed_for_sale && (
-                                    <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: 20 }}>
+                                    <div style={{ borderTop: "1px solid rgba(224, 232, 239, 0.1)", paddingTop: 20 }}>
                                         <h3 style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)", marginBottom: 16 }}>Sale Details</h3>
                                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                                             <div>
@@ -252,7 +375,7 @@ export default async function DashboardStartupsPage({ searchParams }: { searchPa
                                 )}
 
                                 {/* Insights Grid */}
-                                <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: 20, marginTop: 8 }}>
+                                <div style={{ borderTop: "1px solid rgba(224, 232, 239, 0.1)", paddingTop: 20, marginTop: 8 }}>
                                     <h3 style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)", marginBottom: 16 }}>Startup Insights</h3>
                                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                                         <div>
@@ -277,21 +400,16 @@ export default async function DashboardStartupsPage({ searchParams }: { searchPa
                         </form>
 
                         {/* Delete */}
-                        <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--color-border)", display: "flex", justifyContent: "flex-end" }}>
-                            <form action={deleteStartup}>
-                                <input type="hidden" name="id" value={activeStartup.id} />
-                                <button type="submit" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, color: "#EF4444", background: "none", border: "none", cursor: "pointer", padding: "6px 10px", borderRadius: 6 }}>
-                                    <Trash2 size={14} /> Delete startup
-                                </button>
-                            </form>
+                        <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid rgba(224, 232, 239, 0.1)", display: "flex", justifyContent: "flex-end" }}>
+                            <DeleteStartupButton startupId={activeStartup.id} startupName={activeStartup.name} action={deleteStartup} />
                         </div>
                     </div>
                 </div>
             ) : (
                 <div className="card" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <div style={{ textAlign: "center" }}>
-                        <Building2 size={40} color="var(--color-border)" style={{ margin: "0 auto 12px" }} />
-                        <p style={{ color: "var(--color-secondary)", marginBottom: 16 }}>Select a startup to edit.</p>
+                        <Building2 size={40} color="var(--color-secondary)" style={{ opacity: 0.2, margin: "0 auto 12px" }} />
+                        <p style={{ color: "var(--color-secondary)", marginBottom: 16, fontWeight: 500 }}>Select a startup to edit.</p>
                     </div>
                 </div>
             )}

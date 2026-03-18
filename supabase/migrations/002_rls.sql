@@ -1,5 +1,5 @@
 -- ============================================================
--- Vetra: Row Level Security Policies
+-- ProvenMRR: Row Level Security Policies
 -- Migration 002 — RLS
 -- ============================================================
 

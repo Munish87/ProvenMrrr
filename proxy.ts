@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 
 const PROTECTED_PATHS = ["/dashboard"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     let supabaseResponse = NextResponse.next({ request });
 
     const supabase = createServerClient(
@@ -56,7 +56,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: [
+    routes: [
         "/((?!_next/static|_next/image|favicon.ico|api/webhooks).*)",
     ],
 };

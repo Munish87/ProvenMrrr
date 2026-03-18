@@ -95,50 +95,70 @@ export function OfferModal({ isOpen, onClose, startupId, startupName }: OfferMod
         left: 0,
         width: '100%',
         height: '100%',
-        background: 'rgba(0,0,0,0.5)',
-        backdropFilter: 'blur(4px)',
+        background: 'var(--modal-overlay-bg)',
+        backdropFilter: 'blur(18px) saturate(150%)',
+        WebkitBackdropFilter: 'blur(18px) saturate(150%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 99999
+        zIndex: 99999,
+        padding: 24,
     };
 
     const contentStyle: React.CSSProperties = {
         width: 480,
         maxWidth: '92%',
-        background: 'white',
-        borderRadius: 16,
-        boxShadow: '0 25px 60px rgba(0,0,0,0.2)',
+        background: 'var(--modal-card-bg)',
+        borderRadius: 28,
+        border: '1px solid var(--modal-card-border)',
+        boxShadow: 'var(--modal-card-shadow)',
+        backdropFilter: 'blur(28px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(28px) saturate(180%)',
         padding: 32,
         position: 'relative',
         maxHeight: '90vh',
         overflowY: 'auto'
     };
 
+    const inputStyle: React.CSSProperties = {
+        width: "100%",
+        padding: "12px 16px",
+        border: "1px solid var(--modal-input-border)",
+        borderRadius: 16,
+        fontSize: 15,
+        outline: "none",
+        transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+        boxSizing: "border-box",
+        background: "var(--modal-input-bg)",
+        color: "var(--color-text)",
+        boxShadow: "var(--modal-input-shadow)",
+    };
+
     if (isSuccess) {
         return createPortal(
             <div style={overlayStyle} onClick={onClose}>
                 <div style={{ ...contentStyle, textAlign: "center" }} onClick={e => e.stopPropagation()}>
-                    <div style={{ width: 64, height: 64, background: "#D1FAE5", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px" }}>
-                        <Mail color="#059669" size={32} />
+                    <div style={{ width: 64, height: 64, background: "color-mix(in srgb, #10b981 16%, var(--color-surface))", border: "1px solid color-mix(in srgb, #10b981 28%, var(--color-border))", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px" }}>
+                        <Mail color="#34d399" size={32} />
                     </div>
-                    <h2 style={{ fontSize: 24, fontWeight: 700, margin: "0 0 12px", color: "#111827", letterSpacing: "-0.5px" }}>Offer Sent!</h2>
-                    <p style={{ margin: "0 0 32px", color: "#4B5563", lineHeight: 1.6, fontSize: 15 }}>
+                    <h2 style={{ fontSize: 24, fontWeight: 700, margin: "0 0 12px", color: "var(--color-text)", letterSpacing: "-0.5px" }}>Offer Sent!</h2>
+                    <p style={{ margin: "0 0 32px", color: "var(--color-secondary)", lineHeight: 1.6, fontSize: 15 }}>
                         Your offer of <strong>${Number(offerAmount).toLocaleString()}</strong> has been securely routed directly to the founder of {startupName}. They will reply to your email directly if interested.
                     </p>
                     <button
                         onClick={onClose}
                         style={{
                             width: "100%",
-                            background: "#111827",
+                            background: "linear-gradient(135deg, #7da2ff 0%, #5b7cff 45%, #4465f5 100%)",
                             color: "white",
                             border: "none",
                             padding: "14px 24px",
-                            borderRadius: 12,
+                            borderRadius: 999,
                             fontSize: 15,
-                            fontWeight: 600,
+                            fontWeight: 700,
                             cursor: "pointer",
-                            transition: "background 0.2s"
+                            transition: "background 0.2s",
+                            boxShadow: "0 16px 28px rgba(91, 124, 255, 0.24), inset 0 1px 0 rgba(255,255,255,0.24)"
                         }}
                     >
                         Close
@@ -152,40 +172,41 @@ export function OfferModal({ isOpen, onClose, startupId, startupName }: OfferMod
     return createPortal(
         <div style={overlayStyle} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
             <div style={contentStyle}>
-                <button onClick={onClose} style={{ position: "absolute", top: 20, right: 20, background: "none", border: "none", cursor: "pointer", color: "#9CA3AF" }}>
+                <button onClick={onClose} style={{ position: "absolute", top: 20, right: 20, background: "var(--modal-close-bg)", border: "1px solid var(--modal-close-border)", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--color-secondary)" }}>
                     <X size={20} />
                 </button>
 
-                <h2 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 8px", color: "#111827", letterSpacing: "-0.5px" }}>Make an Offer</h2>
-                <p style={{ margin: "0 0 24px", color: "#6B7280", fontSize: 14, lineHeight: 1.5 }}>
-                    Connect directly with the founder of <strong>{startupName}</strong>. Vetra bridges your message securely.
+                <h2 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 8px", color: "var(--color-text)", letterSpacing: "-0.5px" }}>Make an Offer</h2>
+                <p style={{ margin: "0 0 24px", color: "var(--color-secondary)", fontSize: 14, lineHeight: 1.5 }}>
+                    Connect directly with the founder of <strong>{startupName}</strong>. ProvenMRR bridges your message securely.
                 </p>
 
                 {error && (
-                    <div style={{ background: "#FEF2F2", color: "#991B1B", padding: "12px 16px", borderRadius: 8, marginBottom: 24, fontSize: 14, border: "1px solid #F87171" }}>
+                    <div style={{ background: "color-mix(in srgb, #ef4444 14%, var(--color-surface))", color: "color-mix(in srgb, #ef4444 58%, var(--color-text))", padding: "12px 16px", borderRadius: 14, marginBottom: 24, fontSize: 14, border: "1px solid color-mix(in srgb, #ef4444 26%, var(--color-border))" }}>
                         {error}
                     </div>
                 )}
 
                 {!sessionToken ? (
                     <div style={{ textAlign: "center", padding: "32px 0 16px" }}>
-                        <div style={{ width: 48, height: 48, background: "#F3F4F6", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-                            <Mail color="#6B7280" size={24} />
+                        <div style={{ width: 48, height: 48, background: "var(--color-surface-strong)", border: "1px solid var(--color-border)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "var(--shadow-card)" }}>
+                            <Mail color="var(--color-secondary)" size={24} />
                         </div>
-                        <h3 style={{ fontSize: 18, fontWeight: 600, color: "#111827", margin: "0 0 8px" }}>Authentication Required</h3>
-                        <p style={{ color: "#6B7280", fontSize: 14, lineHeight: 1.5, margin: "0 0 24px" }}>
+                        <h3 style={{ fontSize: 18, fontWeight: 600, color: "var(--color-text)", margin: "0 0 8px" }}>Authentication Required</h3>
+                        <p style={{ color: "var(--color-secondary)", fontSize: 14, lineHeight: 1.5, margin: "0 0 24px" }}>
                             You must be signed in to contact founders and make offers on startups.
                         </p>
                         <Link href="/login" style={{
                             display: "inline-block",
-                            background: "#111827",
+                            background: "linear-gradient(135deg, #7da2ff 0%, #5b7cff 45%, #4465f5 100%)",
                             color: "white",
                             padding: "12px 24px",
-                            borderRadius: 8,
+                            borderRadius: 999,
                             fontSize: 14,
-                            fontWeight: 600,
+                            fontWeight: 700,
                             textDecoration: "none",
-                            transition: "background 0.2s"
+                            transition: "background 0.2s",
+                            boxShadow: "0 16px 28px rgba(91,124,255,0.24), inset 0 1px 0 rgba(255,255,255,0.24)"
                         }}>
                             Sign in to continue
                         </Link>
@@ -193,11 +214,11 @@ export function OfferModal({ isOpen, onClose, startupId, startupName }: OfferMod
                 ) : (
                     <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                         <div>
-                            <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6, display: "block" }}>
+                            <label style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)", marginBottom: 8, display: "block" }}>
                                 Offer Amount (USD)
                             </label>
                             <div style={{ position: "relative" }}>
-                                <DollarSign size={18} color="#9CA3AF" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
+                                <DollarSign size={18} color="var(--color-secondary)" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
                                 <input
                                     type="number"
                                     required
@@ -206,16 +227,15 @@ export function OfferModal({ isOpen, onClose, startupId, startupName }: OfferMod
                                     value={offerAmount}
                                     onChange={e => setOfferAmount(e.target.value)}
                                     style={{
-                                        width: "100%", padding: "12px 16px 12px 40px", border: "1px solid #D1D5DB",
-                                        borderRadius: 10, fontSize: 15, outline: "none", transition: "border-color 0.2s",
-                                        boxSizing: 'border-box'
+                                        ...inputStyle,
+                                        padding: "12px 16px 12px 40px",
                                     }}
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6, display: "block" }}>
+                            <label style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)", marginBottom: 8, display: "block" }}>
                                 Your Email Address
                             </label>
                             <input
@@ -224,16 +244,12 @@ export function OfferModal({ isOpen, onClose, startupId, startupName }: OfferMod
                                 placeholder="you@company.com"
                                 value={buyerEmail}
                                 onChange={e => setBuyerEmail(e.target.value)}
-                                style={{
-                                    width: "100%", padding: "12px 16px", border: "1px solid #D1D5DB",
-                                    borderRadius: 10, fontSize: 15, outline: "none", transition: "border-color 0.2s",
-                                    boxSizing: 'border-box'
-                                }}
+                                style={inputStyle}
                             />
                         </div>
 
                         <div>
-                            <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6, display: "block" }}>
+                            <label style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)", marginBottom: 8, display: "block" }}>
                                 Message to Founder
                             </label>
                             <textarea
@@ -242,9 +258,9 @@ export function OfferModal({ isOpen, onClose, startupId, startupName }: OfferMod
                                 value={messageBody}
                                 onChange={e => setMessageBody(e.target.value)}
                                 style={{
-                                    width: "100%", padding: "12px 16px", border: "1px solid #D1D5DB",
-                                    borderRadius: 10, fontSize: 15, outline: "none", transition: "border-color 0.2s",
-                                    minHeight: 120, resize: "vertical", boxSizing: 'border-box'
+                                    ...inputStyle,
+                                    minHeight: 120,
+                                    resize: "vertical",
                                 }}
                             />
                         </div>
@@ -255,20 +271,21 @@ export function OfferModal({ isOpen, onClose, startupId, startupName }: OfferMod
                                 disabled={isSubmitting}
                                 style={{
                                     width: "100%",
-                                    background: "#4F46E5",
+                                    background: "linear-gradient(135deg, #7da2ff 0%, #5b7cff 45%, #4465f5 100%)",
                                     color: "white",
                                     border: "none",
                                     padding: "14px 24px",
-                                    borderRadius: 10,
+                                    borderRadius: 999,
                                     fontSize: 15,
-                                    fontWeight: 600,
+                                    fontWeight: 700,
                                     cursor: isSubmitting ? "not-allowed" : "pointer",
                                     opacity: isSubmitting ? 0.8 : 1,
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "center",
                                     gap: 8,
-                                    transition: "background 0.2s"
+                                    transition: "background 0.2s",
+                                    boxShadow: "0 16px 28px rgba(91,124,255,0.24), inset 0 1px 0 rgba(255,255,255,0.24)"
                                 }}
                             >
                                 {isSubmitting ? (
@@ -280,8 +297,8 @@ export function OfferModal({ isOpen, onClose, startupId, startupName }: OfferMod
                                     "Send securely"
                                 )}
                             </button>
-                            <p style={{ textAlign: "center", fontSize: 12, color: "#9CA3AF", marginTop: 12, marginBottom: 0 }}>
-                                By sending, you agree to vetra's terms. Your email is passed securely to the founder.
+                            <p style={{ textAlign: "center", fontSize: 12, color: "var(--color-secondary)", marginTop: 12, marginBottom: 0, lineHeight: 1.6 }}>
+                                By sending, you agree to ProvenMRR's terms. Your email is passed securely to the founder.
                             </p>
                         </div>
                     </form>

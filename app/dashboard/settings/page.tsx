@@ -36,34 +36,34 @@ export default function SettingsPage() {
 
     return (
         <div style={{ maxWidth: 640, margin: "0 auto", paddingBottom: 64 }}>
-            <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--color-text)", marginBottom: 24 }}>Settings</h1>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--color-text)", marginBottom: 24, letterSpacing: "-0.02em" }}>Settings</h1>
 
-            <div className="card" style={{ padding: 32 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 16, paddingBottom: 24, borderBottom: "1px solid var(--color-border)", marginBottom: 24 }}>
+            <div className="card" style={{ padding: 40 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16, paddingBottom: 24, borderBottom: "1px solid rgba(0,0,0,0.05)", marginBottom: 24 }}>
                     <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--color-accent)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 700, fontSize: 18 }}>
                         {email ? email.charAt(0).toUpperCase() : <User size={20} />}
                     </div>
                     <div>
-                        <p style={{ fontSize: 15, fontWeight: 600, color: "var(--color-text)", margin: 0 }}>{email}</p>
-                        <p style={{ fontSize: 13, color: "var(--color-secondary)", margin: 0, marginTop: 2 }}>Founder account</p>
+                        <p style={{ fontSize: 15, fontWeight: 700, color: "var(--color-text)", margin: 0 }}>{email}</p>
+                        <p style={{ fontSize: 13, color: "var(--color-secondary)", margin: 0, marginTop: 2, fontWeight: 500 }}>Founder account</p>
                     </div>
                 </div>
 
                 <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                     <div>
-                        <label className="field-label" style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", marginBottom: 8, display: "block" }}>Email address</label>
+                        <label className="field-label" style={{ fontSize: 13, fontWeight: 700, color: "var(--color-secondary)", marginBottom: 10, display: "block" }}>Email address</label>
                         <input
                             type="email"
                             value={email}
                             disabled
                             className="field-input"
-                            style={{ opacity: 0.7, cursor: "not-allowed", background: "#F3F4F6", color: "var(--color-secondary)" }}
+                            style={{ opacity: 0.6, cursor: "not-allowed", background: "rgba(0,0,0,0.02)", color: "var(--color-secondary)", border: "1px solid rgba(0,0,0,0.05)" }}
                         />
-                        <p style={{ fontSize: 12, color: "var(--color-secondary)", marginTop: 6 }}>Contact support to change your email.</p>
+                        <p style={{ fontSize: 12, color: "var(--color-secondary)", marginTop: 8, fontWeight: 500 }}>Contact support to change your email.</p>
                     </div>
 
                     <div>
-                        <label className="field-label" style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", marginBottom: 8, display: "block" }}>New Password</label>
+                        <label className="field-label" style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)", marginBottom: 10, display: "block" }}>New Password</label>
                         <input
                             type="password"
                             value={newPassword}
@@ -80,9 +80,9 @@ export default function SettingsPage() {
                             borderRadius: 10,
                             fontSize: 14,
                             fontWeight: 500,
-                            background: msg?.type === "success" ? "#ECFDF5" : "#FEF2F2",
-                            border: `1px solid ${msg?.type === "success" ? "#A7F3D0" : "#FECACA"}`,
-                            color: msg?.type === "success" ? "#059669" : "#DC2626",
+                            background: msg?.type === "success" ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)",
+                            border: `1px solid ${msg?.type === "success" ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)"}`,
+                            color: msg?.type === "success" ? "#10B981" : "#FF6B6B",
                             display: "flex",
                             alignItems: "center",
                             gap: 8

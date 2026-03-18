@@ -169,7 +169,7 @@ function AdvertiserModal({ filledSlots, onClose }: { filledSlots: number; onClos
                 ) : (
                     <>
                         <div className="modal-header">
-                            <h2 className="modal-title">Advertise on Vetra</h2>
+                            <h2 className="modal-title">Advertise on ProvenMRR</h2>
                             <p className="modal-subtitle">{20 - filledSlots} slots available · from $99/week</p>
                             <button className="modal-close" onClick={onClose}>✕</button>
                         </div>

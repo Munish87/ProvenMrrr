@@ -1,8 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { StatusBadge } from "@/components/startup/StatusBadge";
-import { CategoryBadge } from "@/components/startup/CategoryBadge";
-import type { Database } from "@/lib/supabase/types";
+import type { StartupSaleStatus } from "@/lib/startup-sale-status";
 
 type StartupBase = {
     id: string;
@@ -14,113 +13,208 @@ type StartupBase = {
     is_verified: boolean;
     is_anonymous?: boolean;
     created_at: string;
+    sale_status?: StartupSaleStatus | null;
+    asking_price?: number | null;
 };
 
 type SnapBase = {
     mrr: number;
+    arr?: number;
     growth_rate: number;
     all_time_revenue?: number;
 };
 
 export function fmtMoney(n: number) {
     if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-    if (n >= 1_000) return `$${Math.round(n / 1_000).toLocaleString('en-US')}k`;
-    return `$${n.toLocaleString('en-US')}`;
+    if (n >= 1_000) return `$${(n / 1_000).toFixed(n % 1000 === 0 ? 0 : 1)}k`;
+    return `$${Math.round(n)}`;
 }
 
 export function fmtMultiple(price: number, mrr: number) {
-    if (!mrr) return "—";
+    if (!mrr) return "-";
     return `${(price / (mrr * 12)).toFixed(1)}x`;
 }
 
 export function StartupDiscoveryCard({ s, snap }: { s: StartupBase; snap?: SnapBase }) {
-    const priceMultiplier = 2.5 + ((s.name.charCodeAt(0) % 20) / 10);
-    const price = snap ? Math.round(snap.mrr * 12 * priceMultiplier) : 0;
+    const saleStatus = s.sale_status === "sold" ? "sold" : (s.is_listed_for_sale ? (s.sale_status ?? "sale") : null);
 
-    const metric1 = { label: "REVENUE (30D)", value: snap ? fmtMoney(snap.mrr) : "—", color: "#111827" };
-    let metric2: { label: string; value: string; color: string };
-    let metric3: { label: string; value: string; color: string };
+    const metrics = [
+        { label: "MRR", value: snap ? fmtMoney(snap.mrr) : "-" },
+        { label: "ARR", value: snap ? fmtMoney(snap.arr ?? (snap.mrr * 12)) : "-" },
+        { label: "MULTIPLE", value: (s.asking_price && snap?.mrr) ? fmtMultiple(s.asking_price, snap.mrr) : "-" }
+    ];
 
-    if (s.is_listed_for_sale) {
-        metric2 = { label: "MRR", value: price ? fmtMoney(price) : "—", color: "#111827" };
-        metric3 = { label: "TOTAL", value: snap ? fmtMultiple(price, snap.mrr) : "—", color: "#111827" };
-    } else if (snap) {
-        metric2 = { label: "MRR", value: snap.mrr ? fmtMoney(snap.mrr) : "—", color: "#111827" };
-        metric3 = { label: s.category === "Ecommerce" ? "GMV" : "TOTAL", value: snap.all_time_revenue ? fmtMoney(snap.all_time_revenue) : "—", color: "#111827" };
-    } else {
-        metric2 = { label: "MRR", value: "—", color: "#111827" };
-        metric3 = { label: "TOTAL", value: "—", color: "#111827" };
-    }
+    const surfaceByStatus = {
+        sale: {
+            background: "var(--listing-card-sale-bg)",
+            border: "1px solid var(--listing-card-sale-border)",
+            shadow: "var(--listing-card-sale-shadow)",
+            divider: "1px solid var(--listing-card-sale-divider)",
+            accent: "var(--listing-card-sale-accent)",
+            title: "#ffffff",
+            body: "rgba(255, 255, 255, 0.96)",
+            meta: "rgba(236, 253, 245, 0.96)",
+            value: "#ffffff",
+        },
+        offers: {
+            background: "var(--listing-card-offers-bg)",
+            border: "1px solid var(--listing-card-offers-border)",
+            shadow: "var(--listing-card-offers-shadow)",
+            divider: "1px solid var(--listing-card-offers-divider)",
+            accent: "var(--listing-card-offers-accent)",
+            title: "#ffffff",
+            body: "rgba(255, 251, 235, 0.96)",
+            meta: "rgba(255, 237, 213, 0.96)",
+            value: "#ffffff",
+        },
+        sold: {
+            background: "var(--listing-card-sold-bg)",
+            border: "1px solid var(--listing-card-sold-border)",
+            shadow: "var(--listing-card-sold-shadow)",
+            divider: "1px solid var(--listing-card-sold-divider)",
+            accent: "var(--listing-card-sold-accent)",
+            title: "#ffffff",
+            body: "rgba(255, 241, 242, 0.96)",
+            meta: "rgba(254, 226, 226, 0.96)",
+            value: "#ffffff",
+        },
+    } as const;
+
+    const surface = saleStatus ? surfaceByStatus[saleStatus] : null;
 
     return (
-        <Link href={`/startup/${s.id}`} style={{ textDecoration: "none", color: "inherit", display: "block", height: "100%" }}>
-            <div style={{
+        <Link
+            href={`/startup/${s.id}`}
+            className={`card card-hover sc-card${saleStatus ? " sc-card-status" : ""}`}
+            style={{
+                textDecoration: "none",
+                background: surface?.background ?? "var(--listing-card-default-bg)",
+                border: surface?.border ?? "1px solid var(--listing-card-default-border)",
+                boxShadow: surface?.shadow ?? "var(--listing-card-default-shadow)",
+                minHeight: 160,
                 position: "relative",
-                background: "white",
-                border: "1px solid #E5E7EB",
-                borderRadius: "12px",
-                padding: "24px 20px 20px 20px",
+                padding: "20px",
                 display: "flex",
-                flexDirection: "column",
-                height: "100%",
-                boxShadow: "0 1px 2px rgba(0, 0, 0, 0.04)",
-                transition: "box-shadow 0.15s ease",
-            }} className="trust-card-hover">
-                {s.is_listed_for_sale && (
-                    <div style={{
-                        position: "absolute",
-                        top: 0,
-                        right: 0,
-                        background: "#FEF3C7",
-                        color: "#D97706",
-                        fontSize: "9px",
-                        fontWeight: 700,
-                        letterSpacing: "0.05em",
-                        padding: "4px 8px",
-                        borderTopRightRadius: "11px",
-                        borderBottomLeftRadius: "6px",
-                        textTransform: "uppercase"
-                    }}>
-                        For Sale
+                flexDirection: "column"
+            }}
+        >
+            {/* Absolute Status Badge */}
+            <div style={{ position: "absolute", top: "12px", right: "12px" }}>
+                {(s.is_listed_for_sale || saleStatus === "sold") && <StatusBadge status={saleStatus ?? "sale"} />}
+            </div>
+
+            {/* Header: Logo + Title Column */}
+            <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "20px" }}>
+                {s.logo_url && !s.is_anonymous ? (
+                    <div
+                        style={{
+                            width: "44px",
+                            height: "44px",
+                            borderRadius: "10px",
+                            overflow: "hidden",
+                            flexShrink: 0,
+                            position: "relative",
+                            border: "1px solid rgba(255,255,255,0.08)",
+                        }}
+                    >
+                        <Image src={s.logo_url} alt={s.name} fill className="object-cover" unoptimized />
+                    </div>
+                ) : (
+                    <div
+                        style={{
+                            width: "44px",
+                            height: "44px",
+                            borderRadius: "10px",
+                            background: "linear-gradient(135deg, #2D3436 0%, #000000 100%)",
+                            fontSize: "16px",
+                            fontWeight: 800,
+                            color: "white",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            border: "1px solid rgba(255,255,255,0.1)",
+                            filter: s.is_anonymous ? "blur(5px)" : "none"
+                        }}
+                    >
+                        {s.name.charAt(0).toUpperCase()}
                     </div>
                 )}
 
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                    {s.logo_url && !s.is_anonymous ? (
-                        <div style={{ width: 42, height: 42, borderRadius: "8px", overflow: "hidden", flexShrink: 0, position: "relative" }}>
-                            <Image src={s.logo_url} alt={s.name} fill className="object-cover" unoptimized />
-                        </div>
-                    ) : (
-                        <div style={{ width: 42, height: 42, borderRadius: "8px", background: s.name.length % 2 === 0 ? "#14b8a6" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 16, color: "white", flexShrink: 0, filter: s.is_anonymous ? "blur(5px)" : "none" }}>
-                            {s.name.substring(0, 2).toUpperCase()}
-                        </div>
-                    )}
-                    <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: "#111827", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", filter: s.is_anonymous ? "blur(5px)" : "none" }}>
+                <div style={{ overflow: s.is_anonymous ? "visible" : "hidden", textAlign: "left", flex: 1, paddingRight: "50px" }}>
+                    <h3
+                        style={{
+                            margin: 0,
+                            fontWeight: 700,
+                            fontSize: "17px",
+                            color: surface?.title ?? "var(--color-text)",
+                            letterSpacing: "-0.01em",
+                            lineHeight: 1.2,
+                            whiteSpace: "nowrap",
+                            overflow: s.is_anonymous ? "visible" : "hidden",
+                            textOverflow: s.is_anonymous ? "unset" : "ellipsis",
+                            filter: s.is_anonymous ? "blur(6px)" : "none"
+                        }}
+                    >
                         {s.name}
+                    </h3>
+                    <p
+                        style={{
+                            margin: "4px 0 0",
+                            fontSize: "11px",
+                            color: saleStatus ? surface?.meta : "var(--color-secondary)",
+                            fontWeight: 500,
+                            lineHeight: 1,
+                            opacity: 0.7,
+                            letterSpacing: "0.01em"
+                        }}
+                    >
+                        {s.category || "Software Platform"}
                     </p>
                 </div>
-
-                <p style={{ margin: 0, fontSize: 13, color: "#6B7280", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", textOverflow: "ellipsis", flexGrow: 1 }}>
-                    {s.description || `${s.category || 'Software'} Platform`}
-                </p>
-
-                <div style={{ marginTop: 20, marginBottom: 16, borderTop: "1px dashed #E5E7EB", width: "100%" }} />
-
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-                    {[metric1, metric2, metric3].map((m) => (
-                        <div key={m.label} style={{ display: "flex", flexDirection: "column" }}>
-                            <p style={{ margin: "0 0 4px", fontSize: 10, fontWeight: 600, lineHeight: 1, textTransform: "uppercase", color: "#9ca3af", letterSpacing: "0.05em", fontFamily: "monospace" }}>{m.label}</p>
-                            <p style={{ margin: 0, fontWeight: 700, fontSize: 14, lineHeight: 1.2, color: m.color, whiteSpace: "nowrap" }}>{m.value}</p>
-                        </div>
-                    ))}
-                </div>
             </div>
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                .trust-card-hover:hover {
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
-                }
-            `}} />
+
+            {/* Metrics Grid */}
+            <div
+                style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: "12px",
+                    marginTop: "auto",
+                    paddingTop: "16px",
+                    borderTop: surface?.divider ?? "1px solid rgba(255,255,255,0.06)",
+                }}
+            >
+                {metrics.map((m, idx) => (
+                    <div key={m.label} style={{ textAlign: idx === 0 ? "left" : (idx === 1 ? "center" : "right"), minWidth: 0 }}>
+                        <p style={{
+                            margin: "0 0 6px",
+                            fontSize: "8px",
+                            fontWeight: 600,
+                            color: saleStatus ? surface?.meta : "var(--color-muted)",
+                            letterSpacing: "0.05em",
+                            textTransform: "uppercase",
+                            opacity: 0.8
+                        }}>
+                            {m.label}
+                        </p>
+                        <p
+                            style={{
+                                margin: 0,
+                                fontWeight: 800,
+                                fontSize: "16px",
+                                color: surface?.value ?? "var(--color-text)",
+                                lineHeight: 1,
+                                letterSpacing: "-0.02em",
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                            }}
+                        >
+                            {m.value}
+                        </p>
+                    </div>
+                ))}
+            </div>
         </Link>
     );
 }

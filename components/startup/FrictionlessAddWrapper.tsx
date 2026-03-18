@@ -20,9 +20,17 @@ export function FrictionlessAddWrapper({
             <button
                 onClick={() => setIsOpen(true)}
                 className={className}
-                style={style || { height: 44, whiteSpace: "nowrap", background: "#6366F1", color: "white", borderRadius: 8, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, padding: "0 16px", fontSize: 14, fontWeight: 500 }}
+                style={style || { 
+                    height: 48, 
+                    whiteSpace: "nowrap", 
+                    padding: "0 24px", 
+                    fontSize: "14px", 
+                    fontWeight: 700,
+                    boxShadow: "0 4px 14px rgba(99, 102, 241, 0.4)",
+                    borderRadius: "12px",
+                }}
             >
-                <Plus size={16} />
+                <Plus size={18} strokeWidth={2.5} />
                 {text}
             </button>
 

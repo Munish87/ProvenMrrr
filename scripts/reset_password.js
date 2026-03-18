@@ -26,7 +26,7 @@ async function resetDemoPassword() {
     }
 
     console.log('PASSWORD_RESET_SUCCESSFUL');
-    console.log('EMAIL: demo@vetra.app');
+    console.log('EMAIL: demo@provenmrr.com');
     console.log('PASSWORD: ' + newPassword);
 }
 

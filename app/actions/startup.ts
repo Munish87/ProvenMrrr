@@ -20,6 +20,7 @@ export interface FrictionlessSubmissionParams {
     askingPrice?: number;
     profitMargin?: number;
     contactEmail?: string;
+    providerMetadata?: Record<string, any>;
 }
 
 export async function submitFrictionlessStartup(params: FrictionlessSubmissionParams) {
@@ -41,7 +42,7 @@ export async function submitFrictionlessStartup(params: FrictionlessSubmissionPa
                 success: false,
                 isDuplicate: true,
                 existingStartupId: existingConn.startup_id,
-                error: "This Stripe API key is already linked to a listed Vetra startup."
+                error: "This Stripe API key is already linked to a listed ProvenMRR startup."
             };
         }
 
@@ -80,7 +81,7 @@ export async function submitFrictionlessStartup(params: FrictionlessSubmissionPa
         const isVerified = metrics.mrr > 0;
 
         // 2. Health Score Calculation
-        const healthResult = calculateHealthScore(metrics);
+        const healthResult = calculateHealthScore(metrics as any);
 
         // 3. Generate Secure Claim Token
         const claimToken = randomBytes(16).toString("hex");

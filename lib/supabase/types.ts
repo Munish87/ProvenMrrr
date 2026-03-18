@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
   public: {
     Tables: {
       advertisers: {
@@ -42,6 +47,236 @@ export type Database = {
         }
         Relationships: []
       }
+      buyer_interactions: {
+        Row: {
+          created_at: string
+          id: string
+          interaction_type: string
+          startup_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interaction_type: string
+          startup_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interaction_type?: string
+          startup_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buyer_interactions_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "startups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buyer_preferences: {
+        Row: {
+          categories: string[] | null
+          created_at: string
+          id: string
+          max_budget: number | null
+          min_budget: number | null
+          min_growth_rate: number | null
+          min_mrr: number | null
+          min_profit_margin: number | null
+          min_team_size: number | null
+          requires_mobile_app: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          categories?: string[] | null
+          created_at?: string
+          id?: string
+          max_budget?: number | null
+          min_budget?: number | null
+          min_growth_rate?: number | null
+          min_mrr?: number | null
+          min_profit_margin?: number | null
+          min_team_size?: number | null
+          requires_mobile_app?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          categories?: string[] | null
+          created_at?: string
+          id?: string
+          max_budget?: number | null
+          min_budget?: number | null
+          min_growth_rate?: number | null
+          min_mrr?: number | null
+          min_profit_margin?: number | null
+          min_team_size?: number | null
+          requires_mobile_app?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      community_comment_upvotes: {
+        Row: {
+          comment_id: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_comment_upvotes_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "community_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_comment_upvotes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          parent_id: string | null
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "community_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_post_upvotes: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_post_upvotes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_post_upvotes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_posts: {
+        Row: {
+          content: string
+          created_at: string
+          discussion_prompt: string | null
+          id: string
+          image_url: string | null
+          startup: string | null
+          tags: string[]
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          discussion_prompt?: string | null
+          id?: string
+          image_url?: string | null
+          startup?: string | null
+          tags?: string[]
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          discussion_prompt?: string | null
+          id?: string
+          image_url?: string | null
+          startup?: string | null
+          tags?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       health_scores: {
         Row: {
           ai_summary: string | null
@@ -74,7 +309,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "startups"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       offer_messages: {
@@ -106,7 +341,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "offers"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       offers: {
@@ -157,7 +392,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "startups"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       revenue_snapshots: {
@@ -210,7 +445,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "startups"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       startups: {
@@ -222,8 +457,11 @@ export type Database = {
           contact_email: string | null
           country: string | null
           created_at: string
+          customer_count: number | null
           description: string | null
           founded_date: string | null
+          growth_rate: number | null
+          hide_real_time_revenue: boolean | null
           id: string
           insights: Json | null
           is_anonymous: boolean
@@ -231,10 +469,15 @@ export type Database = {
           is_verified: boolean
           logo_url: string | null
           looking_for_cofounder: boolean | null
+          monthly_revenue: number | null
           name: string
           owner_id: string | null
           profit_margin_30d: number | null
           provider: string
+          revenue_30d: number | null
+          sale_status_override: string | null
+          slug: string | null
+          source: string
           tags: string[] | null
           verified: boolean | null
           website_url: string | null
@@ -248,8 +491,11 @@ export type Database = {
           contact_email?: string | null
           country?: string | null
           created_at?: string
+          customer_count?: number | null
           description?: string | null
           founded_date?: string | null
+          growth_rate?: number | null
+          hide_real_time_revenue?: boolean | null
           id?: string
           insights?: Json | null
           is_anonymous?: boolean
@@ -257,10 +503,15 @@ export type Database = {
           is_verified?: boolean
           logo_url?: string | null
           looking_for_cofounder?: boolean | null
+          monthly_revenue?: number | null
           name: string
           owner_id?: string | null
           profit_margin_30d?: number | null
           provider?: string
+          revenue_30d?: number | null
+          sale_status_override?: string | null
+          slug?: string | null
+          source?: string
           tags?: string[] | null
           verified?: boolean | null
           website_url?: string | null
@@ -274,8 +525,11 @@ export type Database = {
           contact_email?: string | null
           country?: string | null
           created_at?: string
+          customer_count?: number | null
           description?: string | null
           founded_date?: string | null
+          growth_rate?: number | null
+          hide_real_time_revenue?: boolean | null
           id?: string
           insights?: Json | null
           is_anonymous?: boolean
@@ -283,10 +537,15 @@ export type Database = {
           is_verified?: boolean
           logo_url?: string | null
           looking_for_cofounder?: boolean | null
+          monthly_revenue?: number | null
           name?: string
           owner_id?: string | null
           profit_margin_30d?: number | null
           provider?: string
+          revenue_30d?: number | null
+          sale_status_override?: string | null
+          slug?: string | null
+          source?: string
           tags?: string[] | null
           verified?: boolean | null
           website_url?: string | null
@@ -299,7 +558,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       stripe_connections: {
@@ -337,7 +596,7 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "startups"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       users: {
@@ -403,7 +662,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
     }
@@ -411,7 +670,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      run_hourly_sync: { Args: never; Returns: undefined }
+      run_trustmrr_import: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
@@ -421,3 +681,126 @@ export type Database = {
     }
   }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

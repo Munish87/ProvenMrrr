@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { BrowseFeed, BrowseStartupNode } from "@/components/browse/BrowseFeed";
+import { CategoryBrowser } from "@/components/startup/CategoryBrowser";
+import { Navbar } from "@/components/layout/Navbar";
+import { getSaleStatusMap } from "@/lib/startup-sale-status";
 
-export const metadata = { title: "Browse Verified Startups — Vetra" };
+export const metadata = { title: "Browse Verified Startups — ProvenMRR" };
 export const dynamic = "force-dynamic";
 
 export default async function BrowsePage(props: {
@@ -12,94 +15,87 @@ export default async function BrowsePage(props: {
     const filterQuery = searchParams?.filter;
     const searchQuery = typeof searchParams?.q === "string" ? searchParams.q : "";
     const categoryQuery = typeof searchParams?.category === "string" ? searchParams.category : "All";
+    const countryQuery = typeof searchParams?.country === "string" ? searchParams.country.toUpperCase() : "All";
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    const { data: startups } = await supabase
-        .from("startups").select("id, name, logo_url, description, category, country, website_url, is_listed_for_sale, is_verified, created_at")
-        .eq("is_anonymous", false).eq("is_verified", true)
-        .order("created_at", { ascending: false })
-        .returns<{ id: string; name: string; logo_url: string | null; description: string | null; category: string | null; country: string | null; website_url: string | null; is_listed_for_sale: boolean; is_verified: boolean; created_at: string }[]>();
+    // 1. Fetch ALL verified startups using pagination to exceed Supabase's 1,000 limit
+    let allVerifiedStartups: any[] = [];
+    let lastId = null;
+    while (true) {
+        let query = supabase
+            .from("startups")
+            .select("id, name, logo_url, description, category, country, website_url, is_listed_for_sale, is_verified, is_anonymous, created_at, asking_price, monthly_revenue, revenue_30d, growth_rate")
+            .eq("is_verified", true)
+            .order("id");
+            
+        if (lastId) query = query.gt("id", lastId);
+        
+        const { data, error } = await query.limit(1000).returns<any[]>();
+        if (error || !data || data.length === 0) break;
+        
+        allVerifiedStartups = [...allVerifiedStartups, ...data];
+        lastId = data[data.length - 1].id;
+        if (data.length < 1000) break;
+    }
 
-    const all = startups ?? [];
+    // Sort by created_at desc in memory as the primary feed view
+    const all = allVerifiedStartups.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
     const ids = all.map((s) => s.id);
+    const saleStatusMap = await getSaleStatusMap(ids);
 
-    const [{ data: snaps }, { data: scores }] = await Promise.all([
-        supabase.from("revenue_snapshots").select("startup_id, mrr, growth_rate")
-            .in("startup_id", ids.length > 0 ? ids : ["x"]).order("snapshot_date", { ascending: false })
-            .returns<{ startup_id: string; mrr: number; growth_rate: number }[]>(),
-        supabase.from("health_scores").select("startup_id, score")
-            .in("startup_id", ids.length > 0 ? ids : ["x"]).order("created_at", { ascending: false })
-            .returns<{ startup_id: string; score: number }[]>(),
-    ]);
-
-    const snapMap = new Map<string, { mrr: number; growth_rate: number }>();
-    for (const s of snaps ?? []) if (!snapMap.has(s.startup_id)) snapMap.set(s.startup_id, s);
+    // 2. Fetch health scores in batches to handle many IDs and the 1k result limit
     const scoreMap = new Map<string, number>();
-    for (const s of scores ?? []) if (!scoreMap.has(s.startup_id)) scoreMap.set(s.startup_id, s.score);
-
-    // Filter server side ONLY if 'deals' parameter was passed from homepage explicitly
-    let baseStartups = [...all];
-    if (filterQuery === 'deals') {
-        baseStartups = baseStartups.filter(s => s.is_listed_for_sale);
+    const ID_BATCH_SIZE = 500;
+    for (let i = 0; i < ids.length; i += ID_BATCH_SIZE) {
+        const chunk = ids.slice(i, i + ID_BATCH_SIZE);
+        const { data: chunkScores } = await supabase
+            .from("health_scores")
+            .select("startup_id, score")
+            .in("startup_id", chunk)
+            .order("created_at", { ascending: false });
+        
+        for (const s of chunkScores ?? []) {
+            if (!scoreMap.has(s.startup_id)) scoreMap.set(s.startup_id, s.score);
+        }
     }
-    if (categoryQuery !== "All") {
-        baseStartups = baseStartups.filter(s => s.category === categoryQuery);
-    }
 
-    // Map into composite BrowseFeed node structure
-    const initialStartups: BrowseStartupNode[] = baseStartups.map(s => ({
+    const initialStartups: BrowseStartupNode[] = all.map(s => ({
         ...s,
-        snap: snapMap.get(s.id),
+        sale_status: (saleStatusMap.get(s.id) === "sold") ? "sold" : (s.is_listed_for_sale ? (saleStatusMap.get(s.id) ?? "sale") : null),
+        snap: {
+            mrr: Number(s.monthly_revenue || 0),
+            arr: Number(s.monthly_revenue ? s.monthly_revenue * 12 : 0),
+            growth_rate: Number(s.growth_rate || 0),
+            all_time_revenue: Number(s.revenue_30d || 0)
+        },
         score: scoreMap.get(s.id)
     }));
 
-    // If 'growth', apply server-side presort
     if (filterQuery === 'growth') {
         initialStartups.sort((a, b) => (b.snap?.growth_rate || 0) - (a.snap?.growth_rate || 0));
     }
 
-
     return (
-        <div style={{ minHeight: "100vh", background: "var(--color-bg)" }}>
-            {/* Header */}
-            <header className="site-header">
-                <div className="site-header-inner">
-                    <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
-                        <Link href="/" className="site-logo">
-                            <span className="site-logo-dot" />
-                            Vetra
-                        </Link>
-                        <nav style={{ display: "flex", gap: 24 }}>
-                            <Link href="/browse" className="nav-link active">Browse</Link>
-                            <Link href="/leaderboard" className="nav-link">Leaderboard</Link>
-                            <Link href="/co-founders" className="nav-link">Co-founders</Link>
-                        </nav>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                        {!user ? (
-                            <>
-                                <Link href="/login" className="nav-link">Sign in</Link>
-                                <Link href="/login" className="btn btn-secondary btn-sm">Sign up</Link>
-                            </>
-                        ) : (
-                            <>
-                                <Link href="/dashboard" className="nav-link">Dashboard</Link>
-                                <form action="/auth/signout" method="POST">
-                                    <button type="submit" className="btn btn-secondary btn-sm" style={{ background: "transparent", border: "1px solid var(--color-border)", cursor: "pointer" }}>
-                                        Sign out
-                                    </button>
-                                </form>
-                            </>
-                        )}
-                    </div>
-                </div>
-            </header>
+        <>
+            <Navbar user={user} />
 
-            <div className="page-container" style={{ paddingTop: 40, paddingBottom: 80 }}>
-                <BrowseFeed initialStartups={initialStartups} initialQuery={searchQuery} />
+            <div className="page-container" style={{ paddingTop: 84, paddingBottom: 72 }}>
+                <BrowseFeed 
+                    initialStartups={initialStartups} 
+                    initialQuery={searchQuery} 
+                    initialCategory={categoryQuery}
+                    initialCountry={countryQuery}
+                    initialOnlyForSale={filterQuery === 'deals'}
+                />
+                
+                <div style={{ marginTop: 80, paddingTop: 56, borderTop: "1px solid rgba(255,255,255,0.42)" }}>
+                    <CategoryBrowser />
+                </div>
             </div>
-        </div>
+        </>
     );
 }

@@ -1,5 +1,5 @@
 -- ============================================================
--- Vetra: Frictionless Startup Submissions
+-- ProvenMRR: Frictionless Startup Submissions
 -- Migration 005 — Claim Tokens, Providers, Anonymous Mode
 -- ============================================================
 

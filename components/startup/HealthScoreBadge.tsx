@@ -29,7 +29,7 @@ export function HealthScoreBadge({ score, size = "md" }: HealthScoreBadgeProps) 
                     cy={outer / 2}
                     r={radius}
                     fill="none"
-                    stroke="rgba(255,255,255,0.08)"
+                    stroke="rgba(0,0,0,0.05)"
                     strokeWidth={stroke}
                 />
                 {/* Progress ring */}
@@ -44,8 +44,7 @@ export function HealthScoreBadge({ score, size = "md" }: HealthScoreBadgeProps) 
                     strokeDasharray={circumference}
                     strokeDashoffset={progress}
                     style={{
-                        transition: "stroke-dashoffset 0.8s ease",
-                        filter: `drop-shadow(0 0 6px ${color}88)`,
+                        transition: "stroke-dashoffset 0.8s ease"
                     }}
                 />
             </svg>
