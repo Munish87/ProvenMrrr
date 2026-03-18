@@ -53,8 +53,16 @@ export class TrustMRRImporter {
         let hasMore = true;
         const processedSlugs = new Set<string>();
 
+        const startTime = Date.now();
+        const MAX_EXECUTION_TIME = 50000; // 50 seconds max to prevent serverless timeout
+
         try {
             while (hasMore) {
+                if (Date.now() - startTime > MAX_EXECUTION_TIME) {
+                    console.log("Approaching Vercel execution limit. Stopping import early.");
+                    break;
+                }
+
                 console.log(`Fetching page ${page} from TrustMRR...`);
                 let response = await fetch(`${this.BASE_URL}/startups?page=${page}&limit=${limit}`, {
                     headers: {
@@ -89,6 +97,11 @@ export class TrustMRRImporter {
                 }
 
                 for (const item of trustStartups) {
+                    if (Date.now() - startTime > MAX_EXECUTION_TIME) {
+                        console.log("Approaching Vercel execution limit mid-page. Breaking loop.");
+                        break;
+                    }
+
                     // Duplicate check by slug
                     const { data: existing } = await supabase
                         .from("startups")
@@ -322,7 +335,10 @@ export class TrustMRRImporter {
                     await new Promise(r => setTimeout(r, 2000));
                 }
                 
-                if (page > 100) break;
+                if (page > 10) {
+                    console.log("Reached max limit of 10 pages. Stopping import.");
+                    break;
+                }
             }
 
             return { imported, updated, skipped };

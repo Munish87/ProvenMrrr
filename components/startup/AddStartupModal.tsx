@@ -287,7 +287,7 @@ export function AddStartupModal({ isOpen, onClose }: { isOpen: boolean; onClose:
                     <div>
                         <h2 style={{ fontSize: 28, fontWeight: 800, margin: 0, color: "var(--color-text)", letterSpacing: "-0.04em", lineHeight: 1.05 }}>Add your startup</h2>
                         <p style={{ margin: "10px 0 0", color: "var(--color-secondary)", fontSize: 14, lineHeight: 1.65, fontWeight: 500, maxWidth: 520 }}>
-                            Showcase your verified revenue to <span style={{ color: "var(--color-text)", fontWeight: 700 }}>120,000+ monthly visitors</span> and get a <span style={{ color: "var(--color-text)", fontWeight: 700 }}>54+ DR dofollow backlink</span>.
+                            Showcase your verified revenue to <span style={{ color: "var(--color-text)", fontWeight: 700 }}>potential buyers</span> and <span style={{ color: "var(--color-text)", fontWeight: 700 }}>investors</span>.
                         </p>
                     </div>
                     <button onClick={onClose} style={{ background: "var(--modal-close-bg)", border: "1px solid var(--modal-close-border)", cursor: "pointer", color: "var(--color-secondary)", padding: 0, width: 36, height: 36, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)" }}>
@@ -352,9 +352,9 @@ export function AddStartupModal({ isOpen, onClose }: { isOpen: boolean; onClose:
                                         <div style={{ flexShrink: 0, display: "flex", alignItems: "center", opacity: isActive ? 1 : 0.6 }}>
                                             {p.icon}
                                         </div>
-                                        <span style={{ 
-                                            overflow: 'hidden', 
-                                            textOverflow: 'ellipsis', 
+                                        <span style={{
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
                                             whiteSpace: 'nowrap',
                                             fontWeight: isActive ? 700 : 500
                                         }}>
@@ -385,9 +385,9 @@ export function AddStartupModal({ isOpen, onClose }: { isOpen: boolean; onClose:
                         {/* API Key Helper Box */}
                         {provider === "stripe" && (
                             <div style={helperBoxStyle}>
-                                <a 
-                                    href="https://dashboard.stripe.com/apikeys/create?name=TrustMRR&permissions%5B%5D=rak_charge_read&permissions%5B%5D=rak_subscription_read&permissions%5B%5D=rak_plan_read&permissions%5B%5D=rak_bucket_connect_read&permissions%5B%5D=rak_file_read&permissions%5B%5D=rak_product_read" 
-                                    target="_blank" 
+                                <a
+                                    href="https://dashboard.stripe.com/apikeys/create?name=TrustMRR&permissions%5B%5D=rak_charge_read&permissions%5B%5D=rak_subscription_read&permissions%5B%5D=rak_plan_read&permissions%5B%5D=rak_bucket_connect_read&permissions%5B%5D=rak_file_read&permissions%5B%5D=rak_product_read"
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     style={{ textDecoration: "none" }}
                                 >
@@ -406,9 +406,9 @@ export function AddStartupModal({ isOpen, onClose }: { isOpen: boolean; onClose:
 
                         {provider === "lemonsqueezy" && (
                             <div style={helperBoxStyle}>
-                                <a 
-                                    href="https://app.lemonsqueezy.com/settings/api" 
-                                    target="_blank" 
+                                <a
+                                    href="https://app.lemonsqueezy.com/settings/api"
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     style={{ textDecoration: "none" }}
                                 >
@@ -427,9 +427,9 @@ export function AddStartupModal({ isOpen, onClose }: { isOpen: boolean; onClose:
 
                         {provider === "polar" && (
                             <div style={helperBoxStyle}>
-                                <a 
-                                    href="https://polar.sh/dashboard" 
-                                    target="_blank" 
+                                <a
+                                    href="https://polar.sh/dashboard"
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     style={{ textDecoration: "none" }}
                                 >
@@ -450,9 +450,9 @@ export function AddStartupModal({ isOpen, onClose }: { isOpen: boolean; onClose:
 
                         {provider === "dodopayments" && (
                             <div style={helperBoxStyle}>
-                                <a 
-                                    href="https://app.dodopayments.com/developer/api-keys" 
-                                    target="_blank" 
+                                <a
+                                    href="https://app.dodopayments.com/developer/api-keys"
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     style={{ textDecoration: "none" }}
                                 >
@@ -479,9 +479,9 @@ export function AddStartupModal({ isOpen, onClose }: { isOpen: boolean; onClose:
                                     background: "var(--modal-card-bg)",
                                     position: "relative"
                                 }}>
-                                    <a 
-                                        href="https://vendors.paddle.com/authentication" 
-                                        target="_blank" 
+                                    <a
+                                        href="https://vendors.paddle.com/authentication"
+                                        target="_blank"
                                         rel="noopener noreferrer"
                                         style={{ textDecoration: "none" }}
                                     >
@@ -511,9 +511,9 @@ export function AddStartupModal({ isOpen, onClose }: { isOpen: boolean; onClose:
 
                         {provider === "revenuecat" && (
                             <div style={helperBoxStyle}>
-                                <a 
-                                    href="https://app.revenuecat.com/" 
-                                    target="_blank" 
+                                <a
+                                    href="https://app.revenuecat.com/"
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     style={{ textDecoration: "none" }}
                                 >
@@ -561,10 +561,10 @@ export function AddStartupModal({ isOpen, onClose }: { isOpen: boolean; onClose:
                                 borderRadius: 8,
                                 background: "var(--color-surface)",
                                 position: "relative"
-                             }}>
-                                <a 
-                                    href="https://app.revenuecat.com/" 
-                                    target="_blank" 
+                            }}>
+                                <a
+                                    href="https://app.revenuecat.com/"
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     style={{ textDecoration: "none" }}
                                 >
@@ -611,10 +611,10 @@ export function AddStartupModal({ isOpen, onClose }: { isOpen: boolean; onClose:
                                 borderRadius: 8,
                                 background: "var(--color-surface)",
                                 position: "relative"
-                             }}>
-                                <a 
-                                    href="https://app.revenuecat.com/" 
-                                    target="_blank" 
+                            }}>
+                                <a
+                                    href="https://app.revenuecat.com/"
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     style={{ textDecoration: "none" }}
                                 >
@@ -664,10 +664,10 @@ export function AddStartupModal({ isOpen, onClose }: { isOpen: boolean; onClose:
                                 borderRadius: 8,
                                 background: "var(--color-surface)",
                                 position: "relative"
-                             }}>
-                                <a 
-                                    href="https://polar.sh/dashboard" 
-                                    target="_blank" 
+                            }}>
+                                <a
+                                    href="https://polar.sh/dashboard"
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     style={{ textDecoration: "none" }}
                                 >
@@ -688,8 +688,8 @@ export function AddStartupModal({ isOpen, onClose }: { isOpen: boolean; onClose:
                         <label style={{ fontSize: 12, fontWeight: 800, color: "var(--field-label-color)", marginBottom: 10, display: "block", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                             {provider === "polar" ? "4. " : provider === "revenuecat" ? "5. " : "3. "}Category
                         </label>
-                        <select 
-                            value={selectedCategory} 
+                        <select
+                            value={selectedCategory}
                             onChange={(e) => setSelectedCategory(e.target.value)}
                             style={darkInputStyle}
                         >
@@ -831,7 +831,7 @@ export function AddStartupModal({ isOpen, onClose }: { isOpen: boolean; onClose:
                 </form>
 
                 {successData && (
-                    <ListingPlanModal 
+                    <ListingPlanModal
                         isOpen={showListingModal}
                         onClose={() => {
                             setShowListingModal(false);
@@ -845,7 +845,7 @@ export function AddStartupModal({ isOpen, onClose }: { isOpen: boolean; onClose:
                         startupId={successData.startupId}
                     />
                 )}
-             </div>
+            </div>
         </div>,
         document.body
     );

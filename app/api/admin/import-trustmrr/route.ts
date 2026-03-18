@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { TrustMRRImporter } from "@/lib/services/trustmrrImporter";
 
+export const maxDuration = 60; // Max allowed for Vercel Hobby
+
 const isDev = process.env.NODE_ENV !== "production";
 
 export async function POST(req: Request) {

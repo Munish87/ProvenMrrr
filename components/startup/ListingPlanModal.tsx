@@ -119,6 +119,7 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
                 {/* Close Button */}
                 {(step !== "success" && !isProcessing) && (
                     <button 
+                        type="button"
                         onClick={onClose}
                         style={{
                             position: "absolute", top: 20, right: 20,
@@ -181,12 +182,13 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
                             }}>
                                 <p style={{ fontSize: 11, fontWeight: 800, color: "#818cf8", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 8 }}>ProvenMRR Pro Listing</p>
                                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 6 }}>
-                                    <span style={{ fontSize: 48, fontWeight: 900, color: "var(--color-text)", letterSpacing: "-0.04em" }}>$0.10</span>
+                                    <span style={{ fontSize: 48, fontWeight: 900, color: "var(--color-text)", letterSpacing: "-0.04em" }}>$0.50</span>
                                     <span style={{ fontSize: 16, fontWeight: 600, color: "var(--color-secondary)" }}>one-time</span>
                                 </div>
                             </div>
 
                             <button 
+                                type="button"
                                 onClick={handleProceedToPayment}
                                 disabled={isProcessing}
                                 style={{
@@ -208,6 +210,7 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
                 {step === "payment" && clientSecret && (
                     <div style={{ padding: 32, animation: "slideIn 0.3s ease-out", position: "relative", zIndex: 1 }}>
                         <button 
+                            type="button"
                             onClick={() => setStep("info")}
                             disabled={isProcessing}
                             style={{
@@ -269,6 +272,7 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
                             Payment confirmed. <b>{startupName}</b> is now visible to all potential buyers in the marketplace.
                         </p>
                         <button 
+                            type="button"
                             onClick={onClose}
                             style={{
                                 width: "100%", background: "var(--color-surface)",
@@ -367,7 +371,7 @@ function CheckoutForm({ startupId, onProcessing, isProcessing }: { startupId: st
                         Verifying...
                     </>
                 ) : (
-                    `Pay $0.10 & List Startup`
+                    `Pay $0.50 & List Startup`
                 )}
             </button>
         </form>
