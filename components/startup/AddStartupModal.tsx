@@ -167,7 +167,7 @@ export function AddStartupModal({ isOpen, onClose }: { isOpen: boolean; onClose:
                     name: res.startup.name,
                     category: res.startup.category,
                     description: null,
-                    is_listed_for_sale: res.startup.is_listed_for_sale,
+                    is_listed_for_sale: false, // Database starts as false until payment clears
                     is_verified: res.startup.is_verified,
                     created_at: res.startup.created_at,
                     snap: {

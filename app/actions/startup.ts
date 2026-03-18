@@ -112,7 +112,7 @@ export async function submitFrictionlessStartup(params: FrictionlessSubmissionPa
                 website_url: websiteUrl || providerData?.metadata?.website_url || null,
                 x_handle: xHandle || null,
                 is_anonymous: isAnonymous,
-                is_listed_for_sale: isListedForSale,
+                is_listed_for_sale: false, // Always start as false; Stripe webhook will toggle this on payment success
                 is_verified: isVerified,
                 provider: provider,
                 claim_token: ownerId ? null : claimToken, // Only need token if not logged in
