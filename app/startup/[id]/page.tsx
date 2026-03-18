@@ -51,12 +51,35 @@ export async function generateMetadata({ params }: Props) {
     const { id } = await params;
     const supabase = await createClient();
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-    const { data } = await supabase.from("startups").select("name, description, is_anonymous")
+    const { data } = await supabase.from("startups").select("name, description, is_anonymous, category, slug, monthly_revenue")
         .or(isUUID ? `id.eq.${id},slug.eq.${id}` : `slug.eq.${id}`)
         .maybeSingle();
     
-    const displayTitle = data?.is_anonymous ? "Anonymous Startup" : (data?.name ?? "Startup");
-    return { title: `${displayTitle} — ProvenMRR`, description: data?.description ?? "Verified startup revenue." };
+    if (!data) return { title: "Startup Not Found | ProvenMRR" };
+
+    const name = data.is_anonymous ? "Anonymous Startup" : data.name;
+    const revStr = data.monthly_revenue && data.monthly_revenue > 0 
+        ? ` with $${Number(data.monthly_revenue).toLocaleString()} monthly revenue` 
+        : "";
+    
+    const title = `${name} — Verified Revenue Data | ProvenMRR`;
+    const description = data.description 
+        ? `${data.description}${revStr}. View verified growth and MRR metrics for this ${data.category || 'startup'} on ProvenMRR.`
+        : `Explore verified revenue metrics and growth data for ${name}${revStr}. Verified via Stripe on ProvenMRR.`;
+
+    return { 
+        title, 
+        description,
+        alternates: {
+            canonical: `https://provenmrr.com/startup/${data.slug || id}`,
+        },
+        openGraph: {
+            title,
+            description,
+            type: "website",
+            url: `https://provenmrr.com/startup/${data.slug || id}`,
+        }
+    };
 }
 
 export default async function StartupProfilePage({ params }: Props) {
@@ -241,19 +264,31 @@ const isDev = process.env.NODE_ENV !== "production";
     const foundedYear = resolvedFoundedDate ? new Date(resolvedFoundedDate).getFullYear() : null;
     const startupMetaLine = [startup.category, formattedCountry].filter(Boolean).join(" · ");
 
+    const jsonLd = {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": startup.is_anonymous ? "Anonymous Startup" : startup.name,
+        "description": startup.description,
+        "applicationCategory": startup.category || "BusinessApplication",
+        "operatingSystem": "Web",
+        "offers": startup.is_listed_for_sale ? {
+            "@type": "Offer",
+            "price": startup.asking_price,
+            "priceCurrency": "USD"
+        } : undefined
+    };
+
     return (
         <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
             <Navbar user={user} />
 
             <div className="page-container" style={{ paddingTop: 100, paddingBottom: 80 }}>
                 {/* Breadcrumb */}
-                {/* Verify/Audit Status overlay replacing static string */}
-                <div style={{ position: "absolute", top: 16, right: 16, display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: (!!conn) ? "#10B981" : "var(--color-secondary)", background: (!!conn) ? "rgba(16, 185, 129, 0.1)" : "rgba(255, 255, 255, 0.05)", padding: "6px 10px", borderRadius: "100px", border: (!!conn) ? "1px solid rgba(16, 185, 129, 0.2)" : "1px solid rgba(255,255,255,0.1)" }}>
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: (!!conn) ? "#10B981" : "var(--color-secondary)" }} />
-                        {(!!conn) ? "API Verified" : "Data Verified"}
-                    </div>
-                </div>
+
                 <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--color-secondary)", marginBottom: 24, padding: "0 12px" }}>
                     <Link href="/" style={{ color: "var(--color-secondary)", textDecoration: "none" }}>ProvenMRR</Link>
                     <ChevronRight size={12} />

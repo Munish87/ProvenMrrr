@@ -44,9 +44,9 @@
   --ambient-top: rgba(83, 100, 50, 0.12);
   --ambient-bottom: rgba(54, 64, 44, 0.08);
   --app-shell-overlay:
-    radial-gradient(circle at 15% 10%, rgba(184,204,255,0.16), transparent 18%),
-    radial-gradient(circle at 85% 8%, rgba(255,220,180,0.12), transparent 16%),
-    linear-gradient(180deg, rgba(255,255,255,0.06), transparent 24%);
+    radial-gradient(circle at 15% 10%, rgba(184, 204, 255, 0.16), transparent 18%),
+    radial-gradient(circle at 85% 8%, rgba(255, 220, 180, 0.12), transparent 16%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 24%);
   --select-bg: rgba(18, 19, 18, 0.92);
   --option-bg: #121312;
   --placeholder-color: rgba(184, 187, 177, 0.68);
@@ -106,38 +106,38 @@
   --modal-input-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 12px 24px rgba(2, 8, 20, 0.2);
   --modal-input-focus-border: rgba(143, 180, 255, 0.5);
   --modal-input-focus-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 16px 28px rgba(2, 8, 20, 0.28);
-  --sidebar-bg: linear-gradient(180deg, rgba(12,26,66,0.96), rgba(8,17,45,0.94) 45%, rgba(5,11,29,0.96));
-  --sidebar-border: rgba(130,160,255,0.14);
-  --sidebar-shadow: inset -1px 0 0 rgba(255,255,255,0.04), 18px 0 40px rgba(2,6,18,0.22);
-  --sidebar-toggle-bg: rgba(255,255,255,0.04);
-  --sidebar-toggle-border: rgba(130,160,255,0.1);
-  --sidebar-toggle-active-bg: linear-gradient(180deg, rgba(42,96,255,0.92), rgba(22,66,188,0.86));
-  --sidebar-toggle-active-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 10px 18px rgba(8,34,120,0.3);
-  --sidebar-nav-active-bg: linear-gradient(180deg, rgba(23,43,98,0.96), rgba(14,27,70,0.88));
-  --sidebar-nav-active-border: rgba(130,160,255,0.18);
-  --sidebar-nav-active-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 10px 20px rgba(6,20,68,0.28);
-  --sidebar-avatar-bg: linear-gradient(180deg, rgba(74,103,255,1), rgba(24,53,170,1));
-  --sidebar-avatar-shadow: 0 8px 18px rgba(22,66,188,0.32);
-  --sidebar-avatar-border: rgba(130,160,255,0.18);
-  --sidebar-footer-bg: rgba(255,255,255,0.04);
-  --sidebar-footer-border: rgba(130,160,255,0.1);
+  --sidebar-bg: linear-gradient(180deg, rgba(12, 26, 66, 0.96), rgba(8, 17, 45, 0.94) 45%, rgba(5, 11, 29, 0.96));
+  --sidebar-border: rgba(130, 160, 255, 0.14);
+  --sidebar-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.04), 18px 0 40px rgba(2, 6, 18, 0.22);
+  --sidebar-toggle-bg: rgba(255, 255, 255, 0.04);
+  --sidebar-toggle-border: rgba(130, 160, 255, 0.1);
+  --sidebar-toggle-active-bg: linear-gradient(180deg, rgba(42, 96, 255, 0.92), rgba(22, 66, 188, 0.86));
+  --sidebar-toggle-active-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 10px 18px rgba(8, 34, 120, 0.3);
+  --sidebar-nav-active-bg: linear-gradient(180deg, rgba(23, 43, 98, 0.96), rgba(14, 27, 70, 0.88));
+  --sidebar-nav-active-border: rgba(130, 160, 255, 0.18);
+  --sidebar-nav-active-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 10px 20px rgba(6, 20, 68, 0.28);
+  --sidebar-avatar-bg: linear-gradient(180deg, rgba(74, 103, 255, 1), rgba(24, 53, 170, 1));
+  --sidebar-avatar-shadow: 0 8px 18px rgba(22, 66, 188, 0.32);
+  --sidebar-avatar-border: rgba(130, 160, 255, 0.18);
+  --sidebar-footer-bg: rgba(255, 255, 255, 0.04);
+  --sidebar-footer-border: rgba(130, 160, 255, 0.1);
   --theme-toggle-shadow: 0 18px 40px rgba(2, 8, 20, 0.24);
-  --listing-card-default-bg: linear-gradient(180deg, rgba(210,220,228,0.08), rgba(84,90,96,0.03) 18%, rgba(18,19,18,0.66) 58%, rgba(14,15,14,0.82));
-  --listing-card-default-border: rgba(224,232,239,0.12);
-  --listing-card-default-shadow: 0 18px 30px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.08);
-  --listing-card-sale-bg: radial-gradient(circle at top left, rgba(255,255,255,0.16), transparent 28%), linear-gradient(180deg, rgba(24,115,83,0.96), rgba(11,72,52,0.98));
+  --listing-card-default-bg: linear-gradient(180deg, rgba(210, 220, 228, 0.08), rgba(84, 90, 96, 0.03) 18%, rgba(18, 19, 18, 0.66) 58%, rgba(14, 15, 14, 0.82));
+  --listing-card-default-border: rgba(224, 232, 239, 0.12);
+  --listing-card-default-shadow: 0 18px 30px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --listing-card-sale-bg: radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 28%), linear-gradient(180deg, rgba(24, 115, 83, 0.96), rgba(11, 72, 52, 0.98));
   --listing-card-sale-border: rgba(110, 231, 183, 0.34);
-  --listing-card-sale-shadow: 0 20px 36px rgba(6, 78, 59, 0.34), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 3px 0 rgba(167,243,208,0.18);
+  --listing-card-sale-shadow: 0 20px 36px rgba(6, 78, 59, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 3px 0 rgba(167, 243, 208, 0.18);
   --listing-card-sale-divider: rgba(167, 243, 208, 0.18);
   --listing-card-sale-accent: rgba(209, 250, 229, 0.92);
-  --listing-card-offers-bg: radial-gradient(circle at top left, rgba(255,255,255,0.16), transparent 28%), linear-gradient(180deg, rgba(180,117,18,0.96), rgba(133,77,14,0.98));
+  --listing-card-offers-bg: radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 28%), linear-gradient(180deg, rgba(180, 117, 18, 0.96), rgba(133, 77, 14, 0.98));
   --listing-card-offers-border: rgba(253, 224, 71, 0.34);
-  --listing-card-offers-shadow: 0 20px 36px rgba(146, 64, 14, 0.3), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 3px 0 rgba(254,240,138,0.16);
+  --listing-card-offers-shadow: 0 20px 36px rgba(146, 64, 14, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 3px 0 rgba(254, 240, 138, 0.16);
   --listing-card-offers-divider: rgba(254, 240, 138, 0.18);
   --listing-card-offers-accent: rgba(254, 240, 138, 0.94);
-  --listing-card-sold-bg: radial-gradient(circle at top left, rgba(255,255,255,0.16), transparent 28%), linear-gradient(180deg, rgba(153,47,47,0.96), rgba(111,29,29,0.98));
+  --listing-card-sold-bg: radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 28%), linear-gradient(180deg, rgba(153, 47, 47, 0.96), rgba(111, 29, 29, 0.98));
   --listing-card-sold-border: rgba(252, 165, 165, 0.28);
-  --listing-card-sold-shadow: 0 20px 36px rgba(127, 29, 29, 0.3), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 3px 0 rgba(254,202,202,0.14);
+  --listing-card-sold-shadow: 0 20px 36px rgba(127, 29, 29, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 3px 0 rgba(254, 202, 202, 0.14);
   --listing-card-sold-divider: rgba(254, 202, 202, 0.16);
   --listing-card-sold-accent: rgba(254, 202, 202, 0.92);
 }
@@ -173,7 +173,7 @@
     linear-gradient(180deg, #ffffff 0%, #fbfbf8 48%, #f3f3ef 100%);
   --ambient-top: rgba(145, 173, 255, 0.18);
   --ambient-bottom: rgba(255, 214, 170, 0.14);
-  --app-shell-overlay: radial-gradient(circle at 14% 10%, rgba(91,124,255,0.12), transparent 18%), radial-gradient(circle at 86% 8%, rgba(255,196,120,0.12), transparent 14%), linear-gradient(180deg, rgba(255,255,255,0.48), transparent 26%);
+  --app-shell-overlay: radial-gradient(circle at 14% 10%, rgba(91, 124, 255, 0.12), transparent 18%), radial-gradient(circle at 86% 8%, rgba(255, 196, 120, 0.12), transparent 14%), linear-gradient(180deg, rgba(255, 255, 255, 0.48), transparent 26%);
   --select-bg: #ffffff;
   --option-bg: #ffffff;
   --placeholder-color: rgba(63, 63, 59, 0.52);
@@ -211,11 +211,11 @@
   --lb-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 247, 243, 0.94));
   --lb-border: rgba(17, 24, 39, 0.08);
   --lb-shadow: 0 20px 40px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.92);
-  --floating-nav-bg: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(247,247,243,0.92));
-  --floating-nav-border: rgba(17,24,39,0.08);
-  --floating-nav-shadow: 0 18px 42px rgba(15,23,42,0.1), inset 0 1px 0 rgba(255,255,255,0.96);
+  --floating-nav-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 247, 243, 0.92));
+  --floating-nav-border: rgba(17, 24, 39, 0.08);
+  --floating-nav-shadow: 0 18px 42px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.96);
   --floating-nav-indicator-bg: linear-gradient(180deg, rgba(245, 247, 255, 0.98), rgba(236, 240, 255, 0.88));
-  --floating-nav-indicator-shadow: 0 10px 20px rgba(31,79,255,0.08), inset 0 1px 0 rgba(255,255,255,0.96);
+  --floating-nav-indicator-shadow: 0 10px 20px rgba(31, 79, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.96);
   --floating-nav-link-hover-bg: rgba(31, 79, 255, 0.06);
   --floating-nav-link-hover-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96);
   --floating-nav-link-active-bg: linear-gradient(180deg, rgba(245, 247, 255, 1), rgba(233, 239, 255, 0.92));
@@ -233,38 +233,38 @@
   --modal-input-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96), 0 8px 20px rgba(15, 23, 42, 0.05);
   --modal-input-focus-border: rgba(31, 79, 255, 0.28);
   --modal-input-focus-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.98), 0 0 0 4px rgba(31, 79, 255, 0.08), 0 14px 26px rgba(15, 23, 42, 0.08);
-  --sidebar-bg: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,248,245,0.96) 45%, rgba(242,242,238,0.98));
-  --sidebar-border: rgba(17,24,39,0.08);
-  --sidebar-shadow: inset -1px 0 0 rgba(255,255,255,0.9), 18px 0 40px rgba(15,23,42,0.08);
-  --sidebar-toggle-bg: rgba(15,23,42,0.04);
-  --sidebar-toggle-border: rgba(17,24,39,0.08);
-  --sidebar-toggle-active-bg: linear-gradient(180deg, rgba(31,79,255,0.98), rgba(24,53,170,0.9));
-  --sidebar-toggle-active-shadow: 0 10px 20px rgba(31,79,255,0.16), inset 0 1px 0 rgba(255,255,255,0.28);
-  --sidebar-nav-active-bg: linear-gradient(180deg, rgba(245,247,255,1), rgba(234,239,255,0.92));
-  --sidebar-nav-active-border: rgba(31,79,255,0.14);
-  --sidebar-nav-active-shadow: 0 10px 20px rgba(31,79,255,0.08), inset 0 1px 0 rgba(255,255,255,0.96);
-  --sidebar-avatar-bg: linear-gradient(180deg, rgba(31,79,255,0.98), rgba(24,53,170,0.92));
-  --sidebar-avatar-shadow: 0 8px 18px rgba(31,79,255,0.16);
-  --sidebar-avatar-border: rgba(31,79,255,0.12);
-  --sidebar-footer-bg: rgba(15,23,42,0.04);
-  --sidebar-footer-border: rgba(17,24,39,0.08);
+  --sidebar-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 248, 245, 0.96) 45%, rgba(242, 242, 238, 0.98));
+  --sidebar-border: rgba(17, 24, 39, 0.08);
+  --sidebar-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.9), 18px 0 40px rgba(15, 23, 42, 0.08);
+  --sidebar-toggle-bg: rgba(15, 23, 42, 0.04);
+  --sidebar-toggle-border: rgba(17, 24, 39, 0.08);
+  --sidebar-toggle-active-bg: linear-gradient(180deg, rgba(31, 79, 255, 0.98), rgba(24, 53, 170, 0.9));
+  --sidebar-toggle-active-shadow: 0 10px 20px rgba(31, 79, 255, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  --sidebar-nav-active-bg: linear-gradient(180deg, rgba(245, 247, 255, 1), rgba(234, 239, 255, 0.92));
+  --sidebar-nav-active-border: rgba(31, 79, 255, 0.14);
+  --sidebar-nav-active-shadow: 0 10px 20px rgba(31, 79, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  --sidebar-avatar-bg: linear-gradient(180deg, rgba(31, 79, 255, 0.98), rgba(24, 53, 170, 0.92));
+  --sidebar-avatar-shadow: 0 8px 18px rgba(31, 79, 255, 0.16);
+  --sidebar-avatar-border: rgba(31, 79, 255, 0.12);
+  --sidebar-footer-bg: rgba(15, 23, 42, 0.04);
+  --sidebar-footer-border: rgba(17, 24, 39, 0.08);
   --theme-toggle-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
-  --listing-card-default-bg: linear-gradient(180deg, rgba(255,255,255,0.99), rgba(248,248,245,0.96));
-  --listing-card-default-border: rgba(17,24,39,0.08);
-  --listing-card-default-shadow: 0 18px 32px rgba(15,23,42,0.09), inset 0 1px 0 rgba(255,255,255,0.98);
-  --listing-card-sale-bg: radial-gradient(circle at top left, rgba(255,255,255,0.32), transparent 26%), linear-gradient(180deg, rgba(132, 229, 181, 0.96), rgba(58, 178, 120, 0.98) 46%, rgba(22, 132, 84, 0.98) 100%);
+  --listing-card-default-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 248, 245, 0.96));
+  --listing-card-default-border: rgba(17, 24, 39, 0.08);
+  --listing-card-default-shadow: 0 18px 32px rgba(15, 23, 42, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.98);
+  --listing-card-sale-bg: radial-gradient(circle at top left, rgba(255, 255, 255, 0.32), transparent 26%), linear-gradient(180deg, rgba(132, 229, 181, 0.96), rgba(58, 178, 120, 0.98) 46%, rgba(22, 132, 84, 0.98) 100%);
   --listing-card-sale-border: rgba(22, 163, 74, 0.34);
-  --listing-card-sale-shadow: 0 20px 34px rgba(22, 163, 74, 0.16), inset 0 1px 0 rgba(255,255,255,0.58);
+  --listing-card-sale-shadow: 0 20px 34px rgba(22, 163, 74, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.58);
   --listing-card-sale-divider: rgba(220, 252, 231, 0.36);
   --listing-card-sale-accent: #166534;
-  --listing-card-offers-bg: radial-gradient(circle at top left, rgba(255,255,255,0.32), transparent 26%), linear-gradient(180deg, rgba(255, 214, 122, 0.96), rgba(245, 158, 11, 0.98) 46%, rgba(180, 83, 9, 0.98) 100%);
+  --listing-card-offers-bg: radial-gradient(circle at top left, rgba(255, 255, 255, 0.32), transparent 26%), linear-gradient(180deg, rgba(255, 214, 122, 0.96), rgba(245, 158, 11, 0.98) 46%, rgba(180, 83, 9, 0.98) 100%);
   --listing-card-offers-border: rgba(217, 119, 6, 0.34);
-  --listing-card-offers-shadow: 0 20px 34px rgba(217, 119, 6, 0.16), inset 0 1px 0 rgba(255,255,255,0.58);
+  --listing-card-offers-shadow: 0 20px 34px rgba(217, 119, 6, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.58);
   --listing-card-offers-divider: rgba(255, 247, 237, 0.36);
   --listing-card-offers-accent: #92400e;
-  --listing-card-sold-bg: radial-gradient(circle at top left, rgba(255,255,255,0.3), transparent 26%), linear-gradient(180deg, rgba(252, 165, 165, 0.96), rgba(239, 68, 68, 0.98) 46%, rgba(185, 28, 28, 0.98) 100%);
+  --listing-card-sold-bg: radial-gradient(circle at top left, rgba(255, 255, 255, 0.3), transparent 26%), linear-gradient(180deg, rgba(252, 165, 165, 0.96), rgba(239, 68, 68, 0.98) 46%, rgba(185, 28, 28, 0.98) 100%);
   --listing-card-sold-border: rgba(220, 38, 38, 0.34);
-  --listing-card-sold-shadow: 0 20px 34px rgba(220, 38, 38, 0.16), inset 0 1px 0 rgba(255,255,255,0.56);
+  --listing-card-sold-shadow: 0 20px 34px rgba(220, 38, 38, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.56);
   --listing-card-sold-divider: rgba(254, 242, 242, 0.36);
   --listing-card-sold-accent: #991b1b;
 }
@@ -756,12 +756,15 @@ textarea.field-input {
 .lb-container .data-table thead tr th:first-child {
   border-top-left-radius: var(--radius-panel);
 }
+
 .lb-container .data-table thead tr th:last-child {
   border-top-right-radius: var(--radius-panel);
 }
+
 .lb-container .data-table tbody tr:last-child td:first-child {
   border-bottom-left-radius: var(--radius-panel);
 }
+
 .lb-container .data-table tbody tr:last-child td:last-child {
   border-bottom-right-radius: var(--radius-panel);
 }
@@ -1121,6 +1124,7 @@ textarea.field-input {
 }
 
 @media (max-width: 768px) {
+
   .card,
   .dashboard-card {
     padding: 16px;
@@ -1141,6 +1145,7 @@ textarea.field-input {
   from {
     transform: translate3d(0, 0, 0) scale(1);
   }
+
   to {
     transform: translate3d(18px, -22px, 0) scale(1.06);
   }
@@ -1151,6 +1156,7 @@ textarea.field-input {
     opacity: 0;
     transform: translateY(16px) scale(0.985);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1162,6 +1168,7 @@ textarea.field-input {
     opacity: 0;
     transform: translate(-50%, 14px) scale(0.96);
   }
+
   to {
     opacity: 1;
     transform: translate(-50%, 0) scale(1);
@@ -1174,9 +1181,11 @@ textarea.field-input {
     transform: translateY(3px) scale(0.999);
     filter: blur(0.4px);
   }
+
   45% {
     opacity: 0.996;
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1189,6 +1198,7 @@ textarea.field-input {
     opacity: 0;
     transform: translateY(18px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1196,6 +1206,7 @@ textarea.field-input {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   body::before,
   body::after,
   .site-header-inner,

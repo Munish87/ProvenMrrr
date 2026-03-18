@@ -216,7 +216,22 @@ export default async function CategoryPage(props: { params: Promise<{ slug: stri
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }) {
     const { slug } = await props.params;
     const categoryName = CATEGORY_MAP[slug];
+    const year = new Date().getFullYear();
+    
+    const title = `Top ${categoryName || 'Startup'} Verified Revenue Leaderboard (${year}) — ProvenMRR`;
+    const description = `Discover and compare verified revenue, MRR, and growth data for ${categoryName || 'various'} startups. Real-time insights from Stripe-connected companies in ${categoryName}.`;
+
     return {
-        title: `${categoryName || 'Category'} — ProvenMRR`,
+        title,
+        description,
+        alternates: {
+            canonical: `https://provenmrr.com/category/${slug}`,
+        },
+        openGraph: {
+            title,
+            description,
+            type: "website",
+            url: `https://provenmrr.com/category/${slug}`,
+        }
     };
 }

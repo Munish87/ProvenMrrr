@@ -1,9 +1,9 @@
 "use client";
 
-import { 
-    Sparkles, Cloud, Terminal, CreditCard, ClipboardCheck, 
-    Megaphone, ShoppingBag, PenTool, Boxes, BarChart3, 
-    GraduationCap, Heart, Share2, Video, TrendingUp, 
+import {
+    Sparkles, Cloud, Terminal, CreditCard, ClipboardCheck,
+    Megaphone, ShoppingBag, PenTool, Boxes, BarChart3,
+    GraduationCap, Heart, Share2, Video, TrendingUp,
     Headphones, Users, Home, Plane, ShieldCheck,
     BarChart2, MessageCircle, Bitcoin, Film, Gamepad2,
     Leaf, HeartPulse, Cpu, Scale, Store, Smartphone,
@@ -46,33 +46,33 @@ const CATEGORIES = [
     { name: "Utilities", label: "Utilities", icon: Wrench, slug: "utilities" },
 ];
 
-export function CategoryBrowser({ 
-    activeSlug 
-}: { 
-    activeSlug?: string 
+export function CategoryBrowser({
+    activeSlug
+}: {
+    activeSlug?: string
 }) {
     return (
         <section style={{ marginTop: activeSlug ? 0 : 64, marginBottom: activeSlug ? 0 : 80 }}>
             <div style={{ textAlign: "center", marginBottom: 40 }}>
-                <h2 style={{ 
-                    fontSize: 24, 
-                    fontWeight: 800, 
-                    color: "var(--color-text)", 
+                <h2 style={{
+                    fontSize: 24,
+                    fontWeight: 800,
+                    color: "var(--color-text)",
                     marginBottom: 12,
                     letterSpacing: "-0.5px"
                 }}>
                     {activeSlug ? "Browse other categories" : "Browse by category"}
                 </h2>
-                <p style={{ 
-                    fontSize: 15, 
+                <p style={{
+                    fontSize: 15,
                     color: "var(--color-secondary)",
                     maxWidth: 800,
                     margin: "0 auto",
                     fontWeight: 500,
                     opacity: 0.6
                 }}>
-                    {activeSlug 
-                        ? "Discover other industry niches and find your next acquisition." 
+                    {activeSlug
+                        ? "Discover other industry niches and find your next acquisition."
                         : "Find your next acquisition by exploring verified startups across the industry."}
                 </p>
             </div>
@@ -88,53 +88,53 @@ export function CategoryBrowser({
                     boxShadow: "var(--shadow-card)",
                 }}
             >
-                <div style={{ 
-                    display: "flex", 
-                    flexWrap: "wrap", 
-                    justifyContent: "center", 
+                <div style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    justifyContent: "center",
                     gap: 14,
                     maxWidth: 980,
                     margin: "0 auto",
                 }}>
-                {CATEGORIES.map((cat) => {
-                    const Icon = cat.icon;
-                    const isActive = activeSlug === cat.slug;
-                    return (
-                        <Link
-                            key={cat.name}
-                            href={isActive ? "/" : `/category/${cat.slug}`}
-                            className="category-pill"
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                                padding: "13px 18px",
-                                minHeight: 46,
-                                borderRadius: 100,
-                                background: isActive
-                                    ? "linear-gradient(135deg, #7da2ff 0%, #5b7cff 46%, #3e58d8 100%)"
-                                    : "var(--color-surface-strong)",
-                                border: isActive ? "1px solid rgba(255,255,255,0.42)" : "1px solid var(--color-border)",
-                                color: isActive ? "white" : "var(--color-text)",
-                                fontSize: 13,
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                                boxShadow: isActive
-                                    ? "0 18px 34px rgba(91,124,255,0.24), inset 0 1px 0 rgba(255,255,255,0.24)"
-                                    : "var(--shadow-card)",
-                                backdropFilter: "blur(26px)",
-                                WebkitBackdropFilter: "blur(26px)",
-                                whiteSpace: "nowrap",
-                                textDecoration: "none",
-                                letterSpacing: "-0.01em"
-                            }}
-                        >
-                            <Icon size={15} strokeWidth={1.9} />
-                            {cat.label}
-                        </Link>
-                    );
-                })}
+                    {CATEGORIES.map((cat) => {
+                        const Icon = cat.icon;
+                        const isActive = activeSlug === cat.slug;
+                        return (
+                            <Link
+                                key={cat.name}
+                                href={isActive ? "/" : `/category/${cat.slug}`}
+                                className="category-pill"
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 10,
+                                    padding: "13px 18px",
+                                    minHeight: 46,
+                                    borderRadius: 100,
+                                    background: isActive
+                                        ? "linear-gradient(135deg, #7da2ff 0%, #5b7cff 46%, #3e58d8 100%)"
+                                        : "var(--color-surface-strong)",
+                                    border: isActive ? "1px solid rgba(255,255,255,0.42)" : "1px solid var(--color-border)",
+                                    color: isActive ? "white" : "var(--color-text)",
+                                    fontSize: 13,
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                                    boxShadow: isActive
+                                        ? "0 18px 34px rgba(91,124,255,0.24), inset 0 1px 0 rgba(255,255,255,0.24)"
+                                        : "var(--shadow-card)",
+                                    backdropFilter: "blur(26px)",
+                                    WebkitBackdropFilter: "blur(26px)",
+                                    whiteSpace: "nowrap",
+                                    textDecoration: "none",
+                                    letterSpacing: "-0.01em"
+                                }}
+                            >
+                                <Icon size={15} strokeWidth={1.9} />
+                                {cat.label}
+                            </Link>
+                        );
+                    })}
                 </div>
             </div>
         </section>

@@ -3,7 +3,7 @@
 import { Activity, BarChart3, TrendingUp, Users, RefreshCw, Zap, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { RevenueChart } from "@/components/charts/RevenueChart";
-import { formatCurrency, formatPercent } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 
 interface RealRevenueDashboardProps {
     latestSnap: any;
@@ -64,7 +64,12 @@ export function RealRevenueDashboard({ latestSnap, chartData, healthScore, isStr
             {/* Secondary Metrics */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 32 }}>
                 {[
-                    { icon: TrendingUp, label: "MoM Growth", color: "#10B981", value: formatPercent(latestSnap?.growth_rate ?? 0) },
+                    {
+                        icon: TrendingUp,
+                        label: "MoM Growth",
+                        color: (latestSnap?.growth_rate ?? 0) >= 0 ? "#10B981" : "#EF4444",
+                        value: `${(latestSnap?.growth_rate ?? 0) >= 0 ? "▲" : "▼"} ${Math.abs(latestSnap?.growth_rate ?? 0).toFixed(1)}%`
+                    },
                     { icon: BarChart3, label: "ARR", color: "var(--color-text)", value: formatCurrency(latestSnap?.arr ?? latestSnap?.all_time_revenue ?? 0) },
                     { icon: Users, label: "Active Subs", color: "var(--color-text)", value: latestSnap?.customer_count ?? 0 }
                 ].map((m, idx) => (
