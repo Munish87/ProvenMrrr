@@ -15,7 +15,10 @@ export function Footer() {
 
         {/* Logo - exact match from Navbar.tsx */}
         <Link href="/" className="site-logo">
-          <div className="site-logo-dot" />
+          <div className="site-logo-icon">
+            <img src="/logo-black.png" alt="ProvenMRR" className="logo-dark" />
+            <img src="/logo-white.png" alt="ProvenMRR" className="logo-light" />
+          </div>
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1, alignItems: "center" }}>
             <span>ProvenMRR</span>
             <span style={{ fontSize: 10, fontWeight: 600, color: "var(--color-secondary)", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 4 }}>
@@ -38,6 +41,7 @@ export function Footer() {
             { href: "/terms", label: "Terms of Use" },
             { href: "/refunds", label: "Sales & Refunds" },
             { href: "/legal", label: "Legal" },
+            { href: "/contact", label: "Contact" },
           ].map((item) => (
             <Link
               key={item.href}

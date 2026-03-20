@@ -524,12 +524,38 @@ textarea.field-input {
   letter-spacing: -0.03em;
 }
 
+/* Robust theme-aware logo icon implementation */
+.site-logo-icon {
+  height: 20px; /* Aligns with ProvenMRR text height */
+  width: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.site-logo-icon img {
+  height: 100% !important;
+  width: auto !important;
+  display: none !important; /* Hide both by default */
+  object-fit: contain;
+}
+
+/* Light theme (default or explicit) - Show black logo */
+html:not([data-theme='dark']) .site-logo-icon .logo-dark,
+[data-theme='light'] .site-logo-icon .logo-dark {
+  display: block !important;
+}
+
+/* Dark theme - Show white logo */
+[data-theme='dark'] .site-logo-icon .logo-light {
+  display: block !important;
+}
+
+/* The dot is replaced by the official logo icon */
 .site-logo-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #ffffff 0%, #bcd0ff 36%, #5b7cff 100%);
-  box-shadow: 0 6px 14px rgba(91, 124, 255, 0.32);
+  display: none;
 }
 
 .nav-link {

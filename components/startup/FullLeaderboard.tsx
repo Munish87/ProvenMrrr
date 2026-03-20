@@ -51,7 +51,7 @@ export function FullLeaderboard({ initialEntries }: { initialEntries: LBEntry[] 
                                 updatedEntries[index] = {
                                     ...updatedEntries[index],
                                     mrr: newSnap.mrr,
-                                    arr: newSnap.all_time_revenue,
+                                    arr: newSnap.arr || (newSnap.mrr * 12),
                                     growth_rate: newSnap.growth_rate
                                 };
                                 return updatedEntries;
@@ -190,7 +190,7 @@ export function FullLeaderboard({ initialEntries }: { initialEntries: LBEntry[] 
                                             borderTop: "1px solid var(--color-border)",
                                             borderBottom: "1px solid var(--color-border)"
                                         }}>
-                                            <Link href={`/startup/${entry.startup_id}`} style={{ display: "flex", alignItems: "center", gap: 16, textDecoration: "none" }}>
+                                            <Link href={`/startup/${startup.slug || entry.startup_id}`} style={{ display: "flex", alignItems: "center", gap: 16, textDecoration: "none" }}>
                                                 <div
                                                     style={{
                                                         width: 40,
@@ -250,20 +250,20 @@ export function FullLeaderboard({ initialEntries }: { initialEntries: LBEntry[] 
                                             borderTop: "1px solid var(--color-border)",
                                             borderBottom: "1px solid var(--color-border)"
                                         }}>
-                                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden" }}>
                                                 {startup.founder_avatar_url && (
                                                     <img
                                                         src={startup.founder_avatar_url}
                                                         alt={startup.founder_name || "Founder"}
-                                                        style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }}
+                                                        style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
                                                     />
                                                 )}
                                                 {startup.founder_name ? (
-                                                    <span style={{ color: "var(--color-text)", opacity: 0.9 }}>
+                                                    <span style={{ color: "var(--color-text)", opacity: 0.9, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                                         {startup.founder_name}
                                                     </span>
                                                 ) : startup.founder_handle ? (
-                                                    <span style={{ opacity: 0.8 }}>@{startup.founder_handle}</span>
+                                                    <span style={{ opacity: 0.8, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>@{startup.founder_handle}</span>
                                                 ) : "—"}
                                             </div>
                                         </td>
@@ -292,8 +292,8 @@ export function FullLeaderboard({ initialEntries }: { initialEntries: LBEntry[] 
                                             borderTop: "1px solid var(--color-border)",
                                             borderBottom: "1px solid var(--color-border)"
                                         }}>
-                                            {(startup?.asking_price && entry.mrr)
-                                                ? `${(startup.asking_price / (entry.mrr * 12)).toFixed(1)}x`
+                                            {(startup?.asking_price && (entry.arr || entry.mrr))
+                                                ? `${(startup.asking_price / (entry.arr || (entry.mrr * 12))).toFixed(1)}x`
                                                 : "—"}
                                         </td>
                                         <td style={{

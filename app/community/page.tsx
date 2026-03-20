@@ -16,11 +16,14 @@ export default async function CommunityPage() {
   } = await supabase.auth.getUser();
 
   // Fetch user profile and real-time counts
-  const [{ data: profile }, { count: totalFounders }, { count: totalStartups }] = await Promise.all([
+  const [{ data: profile }, { count: totalFounders }, { count: totalStartups }, userStartupsData] = await Promise.all([
     user ? supabase.from("users").select("name, avatar_url").eq("id", user.id).single() : Promise.resolve({ data: null }),
     supabase.from("users").select("*", { count: "exact", head: true }),
     supabase.from("startups").select("*", { count: "exact", head: true }),
+    user ? supabase.from("startups").select("name").eq("owner_id", user.id) : Promise.resolve({ data: [] }),
   ]);
+  
+  const userStartups = userStartupsData?.data?.map(s => s.name) || [];
 
   return (
     <>
@@ -28,6 +31,7 @@ export default async function CommunityPage() {
       <FounderCommunityPage
         totalFounders={totalFounders ?? 0}
         totalStartups={totalStartups ?? 0}
+        userStartups={userStartups}
         currentUser={
           user
             ? {

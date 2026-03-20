@@ -24,7 +24,7 @@ export default async function CategoryPage(props: { params: Promise<{ slug: stri
     while (true) {
         let query = supabase
             .from("startups")
-            .select("id, name, logo_url, description, category, is_listed_for_sale, is_verified, is_anonymous, created_at, sale_status_override, asking_price")
+            .select("id, name, logo_url, description, category, is_listed_for_sale, is_verified, is_anonymous, created_at, sale_status_override, asking_price, monthly_revenue, growth_rate, revenue_30d")
             .eq("category", categoryName)
             .order("id");
             
@@ -65,6 +65,19 @@ export default async function CategoryPage(props: { params: Promise<{ slug: stri
     }
 
     const snapMap: Record<string, any> = Object.fromEntries(latestSnapshotsMap.entries());
+
+    // Backfill snapMap from startups table columns
+    for (const startup of startups) {
+        if (!latestSnapshotsMap.has(startup.id) && (startup.monthly_revenue > 0 || (startup.revenue_30d || 0) > 0)) {
+            snapMap[startup.id] = {
+                mrr: startup.monthly_revenue || 0,
+                arr: (startup.monthly_revenue || 0) > 0 ? (startup.monthly_revenue || 0) * 12 : (startup.revenue_30d || 0) * 12,
+                growth_rate: startup.growth_rate || 0,
+                all_time_revenue: startup.revenue_30d || 0,
+                snapshot_date: startup.created_at
+            };
+        }
+    }
 
     const { data: { user } } = await supabase.auth.getUser();
     const startupsWithSaleStatus = startups.map((startup) => {
@@ -143,8 +156,8 @@ export default async function CategoryPage(props: { params: Promise<{ slug: stri
                         fontWeight: 500,
                         opacity: 0.6
                     }}>
-                        Verified revenue and MRR data for {categoryName.toLowerCase()} companies. 
-                        Explore {startupsWithSaleStatus.length} {categoryName.toLowerCase()} startups.
+                        Verified revenue and MRR data for {typeof categoryName === 'string' ? categoryName.toLowerCase() : 'startup'} companies. 
+                        Explore {startupsWithSaleStatus.length} {typeof categoryName === 'string' ? categoryName.toLowerCase() : 'startup'} startups.
                     </p>
                 </div>
 

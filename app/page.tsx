@@ -13,7 +13,8 @@ export const metadata = {
   description: "Connect Stripe. Verify MRR. Get an AI Health Score.",
 };
 
-export const dynamic = "force-dynamic";
+// Revalidate the homepage every 10 minutes to serve it instantly from cache
+export const revalidate = 600;
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -21,97 +22,72 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 1. Fetch ALL startups using pagination to exceed Supabase's 1,000 limit
-  let allStartups: any[] = [];
-  let lastId = null;
-  while (true) {
-    let query = supabase
-      .from("startups")
-      .select("id, name, logo_url, category, description, x_handle, owner_id, claimed_by_user_id, is_listed_for_sale, asking_price, is_verified, is_anonymous, verified, created_at, sale_status_override")
-      .order("id");
+  const baseSelect = "id, name, slug, logo_url, category, description, x_handle, owner_id, claimed_by_user_id, is_listed_for_sale, asking_price, is_verified, is_anonymous, verified, created_at, sale_status_override, monthly_revenue, growth_rate, revenue_30d";
 
-    if (lastId) query = query.gt("id", lastId);
+  // 1. Fetch targeted sections in parallel
+  const [
+    { data: recentlyListedRaw },
+    { data: bestDealsRaw },
+    { data: fastestGrowingRaw },
+    { data: leaderboardRaw }
+  ] = await Promise.all([
+    // Recently listed
+    supabase.from("startups").select(baseSelect).order("created_at", { ascending: false }).limit(3),
+    // Best deals (listed for sale)
+    supabase.from("startups").select(baseSelect).filter("is_listed_for_sale", "eq", true).order("created_at", { ascending: false }).limit(3),
+    // Fastest growing (verified) - using growth_rate column
+    supabase.from("startups").select(baseSelect).filter("is_verified", "eq", true).order("growth_rate", { ascending: false }).limit(3),
+    // Leaderboard (top verified MRR)
+    supabase.from("startups").select(baseSelect).filter("is_verified", "eq", true).order("monthly_revenue", { ascending: false }).limit(10)
+  ]);
 
-    const { data, error } = await query.limit(1000).returns<any[]>();
-    if (error || !data || data.length === 0) break;
+  const allStartupsForStatus = [
+    ...(recentlyListedRaw || []),
+    ...(bestDealsRaw || []),
+    ...(fastestGrowingRaw || []),
+    ...(leaderboardRaw || [])
+  ];
 
-    allStartups = [...allStartups, ...data];
-    lastId = data[data.length - 1].id;
-    if (data.length < 1000) break;
-  }
+  // 2. Fetch sale status map only for the displayed startups
+  const startupIds = Array.from(new Set(allStartupsForStatus.map(s => s.id)));
+  const saleStatusMap = await getSaleStatusMap(startupIds);
 
   const founderIds = Array.from(
     new Set(
-      allStartups
-        .flatMap((startup: any) => [startup.claimed_by_user_id, startup.owner_id])
+      allStartupsForStatus
+        .flatMap((s: any) => [s.claimed_by_user_id, s.owner_id])
         .filter(Boolean)
     )
   );
 
-  // 2. Fetch profiles in batches to handle many IDs
+  // 3. Fetch only required founder profiles
   const founderMap = new Map();
-  const PROFILE_BATCH_SIZE = 500;
-  for (let i = 0; i < founderIds.length; i += PROFILE_BATCH_SIZE) {
-    const chunk = founderIds.slice(i, i + PROFILE_BATCH_SIZE);
+  if (founderIds.length > 0) {
     const { data: founderProfiles } = await supabase
       .from("users")
       .select("id, name, x_handle, avatar_url")
-      .in("id", chunk);
+      .in("id", founderIds);
 
     for (const p of founderProfiles || []) {
       founderMap.set(p.id, p);
     }
   }
 
-  // 3. Fetch snapshots using pagination
-  const snapMap = new Map();
-  let lastSnapId = null;
-  while (true) {
-    let query = supabase
-      .from("revenue_snapshots")
-      .select("id, startup_id, mrr, arr, growth_rate, all_time_revenue, snapshot_date")
-      .order("id");
-
-    if (lastSnapId) query = query.gt("id", lastSnapId);
-
-    const { data, error } = await query.limit(1000).returns<any[]>();
-    if (error || !data || data.length === 0) break;
-
-    for (const s of data) {
-      if (!snapMap.has(s.startup_id)) {
-        snapMap.set(s.startup_id, s);
-      }
+  const prepareStartup = (s: any) => ({
+    ...s,
+    sale_status: s.sale_status_override === "sold" ? "sold" : (s.is_listed_for_sale ? (saleStatusMap.get(s.id) ?? "sale") : null),
+    snap: {
+      mrr: s.monthly_revenue || 0,
+      arr: (s.monthly_revenue || 0) * 12 || (s.revenue_30d || 0) * 12,
+      growth_rate: s.growth_rate || 0,
+      all_time_revenue: s.revenue_30d || 0,
+      snapshot_date: s.created_at
     }
+  });
 
-    lastSnapId = data[data.length - 1].id;
-    if (data.length < 1000) break;
-  }
-
-  const startups: any[] = allStartups;
-  const saleStatusMap = await getSaleStatusMap(startups.map(s => s.id));
-
-  const startupsWithSaleStatus = startups.map((startup) => ({
-    ...startup,
-    sale_status: startup.sale_status_override === "sold" ? "sold" : (startup.is_listed_for_sale ? (saleStatusMap.get(startup.id) ?? "sale") : null),
-  }));
-
-  const recentlyListed = [...startupsWithSaleStatus]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 3);
-
-  const bestDeals = [...startupsWithSaleStatus]
-    .filter((s) => s.is_listed_for_sale && snapMap.get(s.id))
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 3);
-
-  const fastestGrowing = [...startupsWithSaleStatus]
-    .filter((s) => s.verified && snapMap.get(s.id))
-    .sort((a, b) => {
-      const snapA = snapMap.get(a.id);
-      const snapB = snapMap.get(b.id);
-      return (snapB?.growth_rate || 0) - (snapA?.growth_rate || 0);
-    })
-    .slice(0, 3);
+  const recentlyListed = (recentlyListedRaw || []).map(prepareStartup);
+  const bestDeals = (bestDealsRaw || []).map(prepareStartup);
+  const fastestGrowing = (fastestGrowingRaw || []).map(prepareStartup);
 
   const discoverySections = [
     { title: "Recently listed", data: recentlyListed, link: "/browse?filter=recent" },
@@ -119,26 +95,25 @@ export default async function HomePage() {
     { title: "Fastest growing", data: fastestGrowing, link: "/browse?filter=growth" },
   ];
 
-  const lbEntries = startupsWithSaleStatus
-    .filter((s) => s.verified && snapMap.get(s.id))
-    .map((s) => {
-      const founderProfile = founderMap.get(s.claimed_by_user_id || s.owner_id);
-      return {
-        startup_id: s.id,
-        startups: {
-          ...s,
-          founder_name: founderProfile?.name || null,
-          founder_handle: founderProfile?.x_handle || s.x_handle || null,
-          founder_avatar_url: founderProfile?.avatar_url || null,
-        },
-        mrr: snapMap.get(s.id).mrr,
-        arr: snapMap.get(s.id).all_time_revenue,
-        growth_rate: snapMap.get(s.id).growth_rate,
-        all_time: snapMap.get(s.id).all_time_revenue,
-        is_anonymous: s.is_anonymous,
-        asking_price: s.asking_price
-      };
-    });
+  const lbEntries = (leaderboardRaw || []).map((s) => {
+    const p = prepareStartup(s);
+    const founderProfile = founderMap.get(s.claimed_by_user_id || s.owner_id);
+    return {
+      startup_id: s.id,
+      startups: {
+        ...p,
+        founder_name: founderProfile?.name || null,
+        founder_handle: founderProfile?.x_handle || s.x_handle || null,
+        founder_avatar_url: founderProfile?.avatar_url || null,
+      },
+      mrr: p.snap.mrr,
+      arr: p.snap.arr,
+      growth_rate: p.snap.growth_rate,
+      all_time: p.snap.all_time_revenue,
+      is_anonymous: s.is_anonymous,
+      asking_price: s.asking_price
+    };
+  });
 
   return (
     <>
@@ -165,15 +140,10 @@ export default async function HomePage() {
           <div style={{ position: "relative", textAlign: "center", padding: "8px 6px 2px" }}>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
               <div className="glass-pill" style={{ gap: 8, padding: "7px 13px", fontSize: 11 }}>
-                <span
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    background: "#7da2ff",
-                    boxShadow: "0 0 0 5px rgba(125,162,255,0.12)",
-                  }}
-                />
+                <div className="site-logo-icon" style={{ height: 12 }}>
+                  <img src="/logo-black.png" alt="" className="logo-dark" />
+                  <img src="/logo-white.png" alt="" className="logo-light" />
+                </div>
                 Verified startup revenue, in one premium marketplace
               </div>
             </div>
@@ -265,7 +235,6 @@ export default async function HomePage() {
             <HomePageFeed
               sectionTitle={section.title}
               initialData={section.data}
-              snapMapData={Object.fromEntries(snapMap)}
             />
           </section>
         ))}

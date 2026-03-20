@@ -16,8 +16,10 @@ import { StatusBadge } from "@/components/startup/StatusBadge";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { TrustMRRImporter } from "@/lib/services/trustmrrImporter";
+import { calculateHealthScore } from "@/lib/health-score/calculator";
 
-export const dynamic = "force-dynamic";
+// Revalidate startup profiles every hour
+export const revalidate = 3600;
 
 interface Props { params: Promise<{ id: string }>; }
 
@@ -38,8 +40,8 @@ function formatCountryLabel(country: string | null) {
     return trimmedCountry;
 }
 
-function getCountryFlag(country: string | null) {
-    if (!country) return null;
+function getCountryFlag(country: unknown) {
+    if (typeof country !== "string") return null;
 
     const trimmedCountry = country.trim();
     if (!/^[a-z]{2}$/i.test(trimmedCountry)) return null;
@@ -51,10 +53,11 @@ export async function generateMetadata({ params }: Props) {
     const { id } = await params;
     const supabase = await createClient();
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-    const { data } = await supabase.from("startups").select("name, description, is_anonymous, category, slug, monthly_revenue")
+    const { data, error } = await supabase.from("startups").select("name, description, is_anonymous, category, slug, monthly_revenue")
         .or(isUUID ? `id.eq.${id},slug.eq.${id}` : `slug.eq.${id}`)
         .maybeSingle();
-    
+
+    if (error) console.error("[generateMetadata] Startup fetch error:", error);
     if (!data) return { title: "Startup Not Found | ProvenMRR" };
 
     const name = data.is_anonymous ? "Anonymous Startup" : data.name;
@@ -85,36 +88,65 @@ export async function generateMetadata({ params }: Props) {
 export default async function StartupProfilePage({ params }: Props) {
     const { id } = await params;
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-    const { data: startup } = await supabase.from("startups").select("*")
-        .or(isUUID ? `id.eq.${id},slug.eq.${id}` : `slug.eq.${id}`)
-        .maybeSingle();
-    if (!startup) notFound();
+
+    // 1. Fetch startup, user, health score, and connection in parallel
+    const [
+        { data: { user } },
+        { data: startup },
+    ] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from("startups").select("*")
+            .or(isUUID ? `id.eq.${id},slug.eq.${id}` : `slug.eq.${id}`)
+            .maybeSingle()
+    ]);
+
+    if (!startup) {
+        console.error(`[StartupProfile] Startup not found for ID: ${id} (isUUID: ${isUUID})`);
+        notFound();
+    }
+
+    const adminSupabase = createAdminClient();
+    
+    // 2. Fetch secondary data in parallel
+    const [
+        saleStatusMap,
+        { data: healthScore },
+        { data: conn },
+        { data: snapshots }
+    ] = await Promise.all([
+        getSaleStatusMap([startup.id]),
+        supabase.from("health_scores").select("score, risk_level, ai_summary, created_at").eq("startup_id", startup.id)
+            .order("created_at", { ascending: false }).limit(1)
+            .maybeSingle(),
+        adminSupabase.from("stripe_connections").select("encrypted_api_key, provider").eq("startup_id", startup.id).maybeSingle(),
+        supabase.from("revenue_snapshots").select("mrr, arr, all_time_revenue, growth_rate, churn_rate, customer_count, volatility_score, refund_rate, snapshot_date").eq("startup_id", startup.id)
+            .order("snapshot_date", { ascending: true })
+            .returns<{ mrr: number; arr: number; all_time_revenue: number; growth_rate: number; churn_rate: number; customer_count: number; volatility_score: number; refund_rate: number; snapshot_date: string }[]>()
+    ]);
+
     interface StartupInsights {
         value_proposition?: string;
         problem_solved?: string;
         pricing?: string;
         business_model?: string;
         tech_stack?: string[];
+        frontend_stack?: string[];
+        backend_stack?: string[];
     }
     let insights = startup.insights as StartupInsights | null;
-
-const isDev = process.env.NODE_ENV !== "production";
+    const isDev = process.env.NODE_ENV !== "production";
 
     // Automatic Enrichment for TrustMRR startups missing insights
     if (startup.source === "trustmrr" && startup.slug && (!insights || Object.keys(insights).length <= 1)) {
         const enriched = await TrustMRRImporter.enrichStartup(startup.slug);
         if (enriched.success && enriched.data) {
-            // Update local state for immediate rendering
             Object.assign(startup, enriched.data);
             insights = enriched.data.insights as StartupInsights;
             if (isDev) console.log(`[ProfileEnrichment] Successfully enriched ${startup.slug}`);
         }
     }
 
-    const saleStatusMap = await getSaleStatusMap([startup.id]);
     const saleStatus = saleStatusMap.get(startup.id) ?? (startup.is_listed_for_sale ? "sale" : null);
 
     let initialSaved = false;
@@ -128,17 +160,10 @@ const isDev = process.env.NODE_ENV !== "production";
         if (existingWatchlist) initialSaved = true;
     }
 
-    const { data: healthScore } = await supabase.from("health_scores").select("score, risk_level, ai_summary, created_at").eq("startup_id", startup.id)
-        .order("created_at", { ascending: false }).limit(1)
-        .returns<{ score: number; risk_level: string; ai_summary: string | null; created_at: string }[]>().single();
-
-    const adminSupabase = createAdminClient();
-    const { data: conn } = await adminSupabase.from("stripe_connections").select("encrypted_api_key, provider").eq("startup_id", startup.id).maybeSingle();
-
     let latestSnap = null;
     let liveCountry: string | null = null;
     let liveFoundedDate: string | null = null;
-    let chartData: { month: string; mrr: number; arr: number }[] = [];
+    let chartData: { month: string; mrr: number; atr: number }[] = [];
 
     if (conn) {
         try {
@@ -146,7 +171,10 @@ const isDev = process.env.NODE_ENV !== "production";
             const providerData = await fetchProviderData(conn.provider as any, apiKey);
             liveCountry = providerData.metadata?.country || null;
             liveFoundedDate = providerData.metadata?.founded_date || null;
+            // Update latest snap with live data
             const m = providerData.metrics;
+            console.log("LIVE STRIPE METRICS:", m);
+            console.log("LIVE THIS MONTH REVENUE:", m.last30DaysRevenue);
             latestSnap = {
                 mrr: m.mrr,
                 arr: m.arr,
@@ -158,35 +186,106 @@ const isDev = process.env.NODE_ENV !== "production";
                 refund_rate: m.refundRate,
                 last30DaysRevenue: m.last30DaysRevenue,
             };
-            chartData = m.revenueByMonth.map(point => ({ 
-                month: point.month, 
-                mrr: point.revenue, 
-                arr: point.revenue * 12 
-            })) as any;
+            let cumulativeAtr = 0;
+            chartData = m.revenueByMonth.map(point => {
+                cumulativeAtr += point.revenue;
+                const d = new Date(point.date);
+                return { 
+                    month: d.toLocaleString("en-US", { month: "short", year: "2-digit" }), 
+                    mrr: m.mrr, 
+                    atr: cumulativeAtr 
+                };
+            }) as any;
+
+            // Fire-and-forget: Sync live metrics back to DB for the browse page feed
+            if (m.mrr !== undefined && m.mrr !== null) {
+                adminSupabase.from("startups").update({
+                    monthly_revenue: m.mrr,
+                    revenue_30d: m.last30DaysRevenue || m.mrr,
+                    growth_rate: m.momGrowthRate
+                }).eq("id", startup.id).then(({error}) => {
+                    if (error) console.error("Failed to sync live metrics:", error);
+                });
+
+                const todaySnapDate = new Date().toISOString().split("T")[0];
+                const snapData = {
+                    startup_id: startup.id,
+                    snapshot_date: todaySnapDate,
+                    mrr: m.mrr,
+                    arr: m.arr || (m.mrr * 12),
+                    all_time_revenue: m.allTimeRevenue || 0,
+                    growth_rate: m.momGrowthRate || 0,
+                    customer_count: m.customerCount || 0,
+                    churn_rate: m.churnRate || 0,
+                    volatility_score: m.volatilityScore || 0,
+                    refund_rate: m.refundRate || 0
+                };
+
+                adminSupabase.from("revenue_snapshots")
+                    .upsert(snapData, { onConflict: "startup_id,snapshot_date" })
+                    .then(({ error: upsertError }) => {
+                        if (upsertError) {
+                            console.error("Failed to sync revenue snapshot:", {
+                                code: upsertError.code,
+                                message: upsertError.message,
+                                details: upsertError.details,
+                                startup_id: startup.id,
+                                date: todaySnapDate
+                            });
+                        }
+                    });
+            }
         } catch (e) {
             console.error("Failed to fetch live real constraints:", e);
         }
     }
 
     if (!latestSnap) {
-        const { data: snap } = await supabase.from("revenue_snapshots").select("mrr, arr, all_time_revenue, growth_rate, churn_rate, customer_count, volatility_score, refund_rate").eq("startup_id", startup.id)
-            .order("snapshot_date", { ascending: false }).limit(1)
-            .returns<{ mrr: number; arr: number; all_time_revenue: number; growth_rate: number; churn_rate: number; customer_count: number; volatility_score: number; refund_rate: number }[]>().single();
-        if (snap) {
+        if (snapshots && snapshots.length > 0) {
+            const snap = snapshots[snapshots.length - 1]; // Newest based on date order
             latestSnap = {
                 ...snap,
             };
+
+            chartData = snapshots.map((s) => ({
+                month: new Date(s.snapshot_date).toLocaleString("en-US", { month: "short", day: "numeric", year: "2-digit" }),
+                mrr: s.mrr,
+                atr: s.all_time_revenue || 0,
+            })) as any;
         }
+    }
 
-        const { data: snapshots } = await supabase.from("revenue_snapshots").select("mrr, arr, snapshot_date").eq("startup_id", startup.id)
-            .order("snapshot_date", { ascending: true }).limit(12)
-            .returns<{ mrr: number; arr: number; snapshot_date: string }[]>();
+    // 3. Fallback Health Score Calculation (if missing but metrics available)
+    let finalHealthScore = healthScore;
+    if (!finalHealthScore && latestSnap) {
+        const healthResult = calculateHealthScore({
+            mrr: latestSnap.mrr,
+            arr: latestSnap.arr,
+            allTimeRevenue: latestSnap.all_time_revenue || 0,
+            last30DaysRevenue: (latestSnap as any).last30DaysRevenue || latestSnap.mrr,
+            momGrowthRate: latestSnap.growth_rate || 0,
+            churnRate: latestSnap.churn_rate || 0,
+            refundRate: latestSnap.refund_rate || 0,
+            customerCount: latestSnap.customer_count || 0,
+            volatilityScore: latestSnap.volatility_score || 0,
+            revenueByMonth: [] // We don't have month-by-month here, but calculator handles it
+        });
 
-        chartData = (snapshots ?? []).map((s) => ({
-            month: new Date(s.snapshot_date).toLocaleString("en-US", { month: "short", day: "numeric" }),
-            mrr: s.mrr,
-            arr: s.arr || s.mrr * 12,
-        })) as any;
+        finalHealthScore = {
+            score: healthResult.score,
+            risk_level: healthResult.riskLevel,
+            ai_summary: healthResult.aiSummary,
+            created_at: new Date().toISOString()
+        };
+
+        // Sync to DB (Await to ensure it completes in server component)
+        const { error: healthSyncError } = await adminSupabase.from("health_scores").upsert({
+            startup_id: startup.id,
+            score: healthResult.score,
+            risk_level: healthResult.riskLevel,
+            ai_summary: healthResult.aiSummary,
+        }, { onConflict: "startup_id" });
+        if (healthSyncError) console.error("Failed to sync on-the-fly health score:", healthSyncError);
     }
 
     let ownerProfile: { name: string | null; x_handle: string | null; avatar_url: string | null } | null = null;
@@ -220,20 +319,17 @@ const isDev = process.env.NODE_ENV !== "production";
         }
     }
 
-    let rawRelated = [];
-    if (startup.is_listed_for_sale) {
-        const { data: saleRelated } = await supabase.from("startups").select("id, name, logo_url, is_anonymous, category, description, is_listed_for_sale, is_verified, created_at, sale_status_override, asking_price")
-            .eq("is_listed_for_sale", true).neq("id", id).limit(50)
-            .returns<{ id: string; name: string; logo_url: string | null; is_anonymous: boolean; category: string | null; description: string | null; is_listed_for_sale: boolean; is_verified: boolean; created_at: string; sale_status_override: string | null; asking_price: number | null; }[]>();
-        rawRelated = saleRelated || [];
-    } else {
-        const { data: categoryRelated } = await supabase.from("startups").select("id, name, logo_url, is_anonymous, category, description, is_listed_for_sale, is_verified, created_at, sale_status_override, asking_price")
-            .eq("category", startup.category || "Software").neq("id", id).limit(50)
-            .returns<{ id: string; name: string; logo_url: string | null; is_anonymous: boolean; category: string | null; description: string | null; is_listed_for_sale: boolean; is_verified: boolean; created_at: string; sale_status_override: string | null; asking_price: number | null; }[]>();
-        rawRelated = categoryRelated || [];
-    }
+    // Targeted related startups query
+    const relatedQuery = supabase.from("startups")
+        .select("id, slug, name, logo_url, is_anonymous, category, description, is_listed_for_sale, is_verified, created_at, sale_status_override, asking_price")
+        .neq("id", startup.id)
+        .limit(6);
 
-    const shuffledRelated = [...rawRelated].sort(() => 0.5 - Math.random()).slice(0, 6);
+    const { data: rawRelated } = startup.is_listed_for_sale 
+        ? await relatedQuery.eq("is_listed_for_sale", true)
+        : await relatedQuery.eq("category", startup.category || "Software");
+
+    const shuffledRelated = rawRelated || [];
 
     let relatedSnapshotsMap: Record<string, any> = {};
     let relatedSaleStatusMap = new Map<string, "sale" | "offers" | "sold">();
@@ -327,7 +423,7 @@ const isDev = process.env.NODE_ENV !== "production";
                             <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
                                     <h1 style={{ fontSize: 32, fontWeight: 700, color: "var(--color-text)", letterSpacing: "-0.02em", filter: startup.is_anonymous ? "blur(5px)" : "none", margin: 0 }}>{startup.name}</h1>
-                                    {(!!conn) && (
+                                    {(startup.is_verified && startup.claimed_by_user_id) && (
                                         <div
                                             style={{
                                                 width: 26,
@@ -364,11 +460,12 @@ const isDev = process.env.NODE_ENV !== "production";
                     </div>
 
                     {/* Stat cards */}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 14, marginBottom: 40 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: 14, marginBottom: 40 }}>
                         {[
                             { label: "MRR", value: formatCurrency(latestSnap?.mrr ?? 0), sub: `${latestSnap?.customer_count ?? 0} active subs` },
-                            { label: "ARR", value: formatCurrency(latestSnap?.arr ?? (latestSnap?.mrr ?? 0) * 12), sub: "Annual Run Rate" },
-                            { label: "Health Score", value: `${healthScore?.score ?? 0}/100`, sub: `${healthScore?.risk_level ?? "Unrated"} risk` },
+                            { label: "ARR", value: formatCurrency((latestSnap?.mrr || 0) * 12), sub: "Annual Recurring" },
+                            { label: "ATR", value: formatCurrency(latestSnap?.all_time_revenue || 0), sub: "All Time Revenue" },
+                             { label: "Health Score", value: `${finalHealthScore?.score ?? 0}/100`, sub: `${finalHealthScore ? (finalHealthScore.risk_level.charAt(0).toUpperCase() + finalHealthScore.risk_level.slice(1)) : "Unrated"} risk` },
                             {
                                 label: "Founded",
                                 value: (
@@ -395,23 +492,40 @@ const isDev = process.env.NODE_ENV !== "production";
                             {
                                 label: "Founder",
                                 value: resolvedXHandle ? (
-                                    <a href={`https://x.com/${cleanXHandle}`} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--color-text)", textDecoration: "none" }}>
+                                    <a href={`https://x.com/${cleanXHandle}`} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--color-text)", textDecoration: "none", width: "100%", overflow: "hidden" }}>
                                         {xData?.avatar_url && (
                                             <img src={xData.avatar_url} alt="Profile" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                                         )}
-                                        <span style={{ color: "var(--color-text)", fontWeight: 700 }}>
+                                        <span style={{ 
+                                            color: "var(--color-text)", 
+                                            fontWeight: 700,
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            whiteSpace: "nowrap",
+                                            flex: 1
+                                        }}>
                                             {resolvedFounderName || xData?.name || `@${cleanXHandle}`}
                                         </span>
                                     </a>
-                                ) : (resolvedFounderName || "—"),
+                                ) : (
+                                    <span style={{ 
+                                        display: "block",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                        width: "100%"
+                                    }}>
+                                        {resolvedFounderName || "—"}
+                                    </span>
+                                ),
                                 sub: resolvedXHandle ? (xData?.followers !== undefined ? `${xData.followers.toLocaleString()} followers` : "Founder") : "—"
                             },
                         ].map(({ label, value, sub }) => (
                             <div
                                 key={label}
                                 style={{
-                                    padding: "26px 24px",
-                                    minHeight: 138,
+                                    padding: "20px 24px",
+                                    height: 150,
                                     display: "flex",
                                     flexDirection: "column",
                                     justifyContent: "space-between",
@@ -421,11 +535,25 @@ const isDev = process.env.NODE_ENV !== "production";
                                     boxShadow: "var(--shadow-card)",
                                     backdropFilter: "blur(18px)",
                                     WebkitBackdropFilter: "blur(18px)",
+                                    overflow: "hidden"
                                 }}
                             >
-                                <p className="metric-label" style={{ marginBottom: 12, fontSize: "11px", letterSpacing: "0.08em", color: "var(--color-secondary)", opacity: 0.72 }}>{label}</p>
-                                <div style={{ fontSize: 28, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-0.03em", marginBottom: 8, lineHeight: 1.05 }}>{value}</div>
-                                <p style={{ fontSize: 13, color: "var(--color-secondary)", fontWeight: 500, opacity: 0.65 }}>{sub}</p>
+                                <p className="metric-label" style={{ marginBottom: 8, fontSize: "11px", letterSpacing: "0.08em", color: "var(--color-secondary)", opacity: 0.72 }}>{label}</p>
+                                <div style={{ 
+                                    fontSize: 28, 
+                                    fontWeight: 800, 
+                                    color: "var(--color-text)", 
+                                    letterSpacing: "-0.03em", 
+                                    marginBottom: 8, 
+                                    lineHeight: 1.05,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: label === "Founded" ? "normal" : "nowrap",
+                                    width: "100%"
+                                }}>
+                                    {value}
+                                </div>
+                                <p style={{ fontSize: 13, color: "var(--color-secondary)", fontWeight: 500, opacity: 0.65, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</p>
                             </div>
                         ))}
                     </div>
@@ -435,8 +563,8 @@ const isDev = process.env.NODE_ENV !== "production";
                          <RealRevenueDashboard
                             latestSnap={latestSnap}
                             chartData={chartData}
-                            healthScore={healthScore}
-                            isStripeConnected={!!conn}
+                             healthScore={finalHealthScore}
+                            isStripeConnected={!!conn && startup.is_verified}
                         />
                     ) : (
                         <div style={{ marginBottom: 40, padding: 40, background: "var(--color-surface-strong)", border: "1px solid var(--color-border)", borderRadius: 20, textAlign: "center", color: "var(--color-secondary)" }}>
@@ -458,10 +586,10 @@ const isDev = process.env.NODE_ENV !== "production";
                                 </div>
                             )}
                             <div>
-                                <p style={{ fontSize: 18, fontWeight: 600, color: "var(--color-text)", margin: 0 }}>
+                                <p style={{ fontSize: 18, fontWeight: 600, color: "var(--color-text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                     {startup.claimed_by_user_id ? (
                                         resolvedXHandle ? (
-                                            <a href={`https://x.com/${cleanXHandle}`} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-text)", textDecoration: "none" }}>
+                                            <a href={`https://x.com/${cleanXHandle}`} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-text)", textDecoration: "none", display: "inline-block", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                                 <span style={{ color: "var(--color-text)", fontWeight: 700 }}>
                                                     {resolvedFounderName || xData?.name || `@${cleanXHandle}`}
                                                 </span>
@@ -602,10 +730,26 @@ const isDev = process.env.NODE_ENV !== "production";
                                     {(() => {
                                         const techFromInsights = insights?.tech_stack || [];
                                         const techFromTags = startup.tags || [];
-                                        const techStack = [...new Set([...techFromInsights, ...techFromTags])];
-                                        const frontendTechs = techStack.filter((t: string) => TECH_STACK_OPTIONS.find((o: any) => o.value === t)?.category === 'frontend');
-                                        const backendTechs = techStack.filter((t: string) => TECH_STACK_OPTIONS.find((o: any) => o.value === t)?.category === 'backend');
-                                        const otherTags = techFromTags.filter((t: string) => !techStack.includes(t) || !TECH_STACK_OPTIONS.find((o: any) => o.value === t));
+                                        const techStack = [...new Set([...techFromInsights, ...techFromTags])]
+                                            .filter((t: string) => t && t !== "[object Object]");
+                                        
+                                        // Use pre-categorized stacks if available, otherwise filter
+                                        const insightFrontend = insights?.frontend_stack || [];
+                                        const insightBackend = insights?.backend_stack || [];
+                                        
+                                        const frontendTechs = [...new Set([
+                                            ...insightFrontend,
+                                            ...techStack.filter((t: string) => TECH_STACK_OPTIONS.find((o: any) => o.value === t)?.category === 'frontend')
+                                        ])];
+                                        
+                                        const backendTechs = [...new Set([
+                                            ...insightBackend,
+                                            ...techStack.filter((t: string) => TECH_STACK_OPTIONS.find((o: any) => o.value === t)?.category === 'backend')
+                                        ])];
+                                        
+                                        const otherTags = techStack.filter((t: string) => 
+                                            !frontendTechs.includes(t) && !backendTechs.includes(t)
+                                        );
 
                                         return (
                                             <>

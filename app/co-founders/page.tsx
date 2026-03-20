@@ -19,7 +19,8 @@ function fmtMoney(n: number) {
 
 export default async function CoFoundersPage(props: { searchParams: Promise<{ q?: string }> }) {
     const searchParams = await props.searchParams;
-    const query = searchParams.q?.toLowerCase() || "";
+    const rawQ = searchParams.q;
+    const query = (typeof rawQ === "string" ? rawQ : (Array.isArray(rawQ) ? rawQ[0] : "")).toLowerCase();
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

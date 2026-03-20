@@ -28,20 +28,40 @@ export interface HealthScoreResult {
 export function calculateHealthScore(
     metrics: ComputedMetrics
 ): HealthScoreResult {
+    // ─── Data Presence & Confidence ───────────────────────────────────────────
+    const hasHistory = metrics.revenueByMonth.length >= 3;
+    const hasRecentRevenue = metrics.last30DaysRevenue > 0;
+    const hasCustomers = metrics.customerCount > 0;
+    const hasTotalRevenue = metrics.allTimeRevenue > 0;
+
     // ─── 1. Revenue Stability (0–30) ────────────────────────────────────────────
     // Lower volatility = higher score. Volatility is 0–100.
-    const revenueStability = 30 * (1 - metrics.volatilityScore / 100);
+    // If no history or zero revenue, don't give full stability credit.
+    let revenueStability = 30 * (1 - metrics.volatilityScore / 100);
+    if (!hasHistory || !hasTotalRevenue) {
+        revenueStability = Math.min(10, revenueStability); // Cap at 10 if no history
+    }
 
     // ─── 2. Growth Rate (0–25) ──────────────────────────────────────────────────
     // Clamp growth rate: -100% to +100%
     // -100% maps to 0, 0% maps to ~10, +100% maps to 25
     const growthClamped = Math.max(-100, Math.min(100, metrics.momGrowthRate));
-    const growthRate = 25 * ((growthClamped + 100) / 200);
+    let growthRate = 25 * ((growthClamped + 100) / 200);
+    
+    // If growth is exactly 0 and no history, it's neutral/uncertain (8/25)
+    if (metrics.momGrowthRate === 0 && !hasHistory) {
+        growthRate = 8;
+    }
 
     // ─── 3. Churn Score (0–25, inverse) ─────────────────────────────────────────
     // 0% churn → 25 pts | 10%+ churn → 0 pts
     const churnClamped = Math.max(0, Math.min(10, metrics.churnRate));
-    const churnScore = 25 * (1 - churnClamped / 10);
+    let churnScore = 25 * (1 - churnClamped / 10);
+    
+    // If no customers or no history, zero churn is expected, not an achievement (5/25)
+    if (!hasCustomers || !hasHistory) {
+        churnScore = Math.min(5, churnScore);
+    }
 
     // ─── 4. Customer Diversification (0–10) ─────────────────────────────────────
     // More customers = more resilient. Cap at 100 customers for full score.
@@ -50,7 +70,12 @@ export function calculateHealthScore(
     // ─── 5. Refund Score (0–10, inverse) ────────────────────────────────────────
     // 0% refunds → 10 pts | 15%+ refunds → 0 pts
     const refundClamped = Math.max(0, Math.min(15, metrics.refundRate));
-    const refundScore = 10 * (1 - refundClamped / 15);
+    let refundScore = 10 * (1 - refundClamped / 15);
+    
+    // If no total revenue, zero refunds is expected (2/10)
+    if (!hasTotalRevenue) {
+        refundScore = Math.min(2, refundScore);
+    }
 
     const rawScore =
         revenueStability +

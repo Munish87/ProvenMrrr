@@ -30,7 +30,7 @@ export function StartupCard({
     };
 
     return (
-        <Link href={`/startup/${startup.id}`}>
+        <Link href={`/startup/${startup.slug || startup.id}`}>
             <div className="card p-5 card-hover cursor-pointer border border-zinc-100">
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3 min-w-0">

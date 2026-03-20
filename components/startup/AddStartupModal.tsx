@@ -25,7 +25,7 @@ export function AddStartupModal({ isOpen, onClose }: { isOpen: boolean; onClose:
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [duplicateStartupId, setDuplicateStartupId] = useState<string | null>(null);
-    const [successData, setSuccessData] = useState<{ startupId: string; claimToken: string | null } | null>(null);
+    const [successData, setSuccessData] = useState<{ startupId: string; slug?: string | null; claimToken: string | null } | null>(null);
     const [showListingModal, setShowListingModal] = useState(false);
     const [mounted, setMounted] = useState(false);
 
@@ -184,7 +184,8 @@ export function AddStartupModal({ isOpen, onClose }: { isOpen: boolean; onClose:
             setIsSubmitting(false);
             setSuccessData({
                 startupId: res.startupId!,
-                claimToken: res.claimToken || null
+                slug: (res as any).startup?.slug,
+                claimToken: res.claimToken!
             });
         }
     };
@@ -193,7 +194,7 @@ export function AddStartupModal({ isOpen, onClose }: { isOpen: boolean; onClose:
         return <SuccessModal isOpen={true} onClose={() => {
             setSuccessData(null);
             onClose();
-        }} startupId={successData.startupId} claimToken={successData.claimToken} />;
+        }} startupId={successData.startupId} slug={successData.slug} claimToken={successData.claimToken} />;
     }
 
     const overlayStyle: React.CSSProperties = {

@@ -4,6 +4,7 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { fetchProviderData, type ProviderType } from "@/lib/revenue/fetchers";
 import { encryptApiKey } from "@/lib/crypto";
 import { calculateHealthScore } from "@/lib/health-score/calculator";
+import { slugify } from "@/lib/categories";
 import { randomBytes, createHash } from "crypto";
 import { revalidatePath } from "next/cache";
 
@@ -52,33 +53,17 @@ export async function submitFrictionlessStartup(params: FrictionlessSubmissionPa
             providerData = await fetchProviderData(provider, apiKey);
         } catch (err: unknown) {
             console.warn(`[API] Failed to parse provider data for ${name}:`, err);
-            // Fallback to exactly $0 for all metrics to allow the listing to proceed natively as UNVERIFIED
-            providerData = {
-                metrics: {
-                    mrr: 0,
-                    arr: 0,
-                    allTimeRevenue: 0,
-                    momGrowthRate: 0,
-                    churnRate: 0,
-                    refundRate: 0,
-                    customerCount: 0,
-                    volatilityScore: 0,
-                    revenueByMonth: [],
-                },
-                metadata: {
-                    name,
-                    logo: null,
-                    founded_date: null,
-                    country: null,
-                }
+            return {
+                success: false,
+                error: err instanceof Error ? err.message : "Invalid API Key or failed to connect to provider. Please check your credentials."
             };
         }
 
         const metrics = providerData.metrics;
 
         // 2. Determine Verification Status
-        // If MRR stringency isn't met (revenue == 0), allow listing but mark as UNVERIFIED.
-        const isVerified = metrics.mrr > 0;
+        // A startup is verified if they have MRR OR significant all-time revenue verified via provider.
+        const isVerified = metrics.mrr > 0 || metrics.allTimeRevenue > 10;
 
         // 2. Health Score Calculation
         const healthResult = calculateHealthScore(metrics as any);
@@ -118,9 +103,14 @@ export async function submitFrictionlessStartup(params: FrictionlessSubmissionPa
                 claim_token: ownerId ? null : claimToken, // Only need token if not logged in
                 asking_price: askingPrice,
                 profit_margin_30d: profitMargin,
-                contact_email: contactEmail
+                contact_email: contactEmail,
+                monthly_revenue: metrics.mrr,
+                growth_rate: metrics.momGrowthRate,
+                customer_count: metrics.customerCount,
+                revenue_30d: metrics.last30DaysRevenue || metrics.mrr,
+                slug: slugify(startupName)
             })
-            .select("id")
+            .select("id, slug")
             .single();
 
         if (startupError || !startup) {
@@ -151,8 +141,8 @@ export async function submitFrictionlessStartup(params: FrictionlessSubmissionPa
             const isCurrentMonth = index === metrics.revenueByMonth.length - 1;
             return {
                 startup_id: startupId,
-                mrr: isCurrentMonth ? metrics.mrr : 0,
-                arr: isCurrentMonth ? metrics.arr : 0,
+                mrr: isCurrentMonth ? metrics.mrr : point.revenue,
+                arr: isCurrentMonth ? (metrics.mrr > 0 ? metrics.arr : (metrics.last30DaysRevenue || 0) * 12) : point.revenue * 12,
                 all_time_revenue: isCurrentMonth ? metrics.allTimeRevenue : point.revenue,
                 churn_rate: isCurrentMonth ? metrics.churnRate : 0,
                 growth_rate: isCurrentMonth ? metrics.momGrowthRate : 0,
@@ -195,6 +185,7 @@ export async function submitFrictionlessStartup(params: FrictionlessSubmissionPa
             mrr: metrics.mrr,
             startup: {
                 id: startupId,
+                slug: startup.slug,
                 name: startupName,
                 logo_url: logoUrl,
                 mrr: metrics.mrr,

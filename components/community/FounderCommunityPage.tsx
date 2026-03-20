@@ -53,6 +53,7 @@ type Post = {
   image?: string;
   discussionPrompt?: string;
   thread: Comment[];
+  startupSlug?: string | null;
 };
 
 type PostRow = {
@@ -98,6 +99,7 @@ type CommentUpvoteRow = {
 type StartupRow = {
   id: string;
   name: string;
+  slug: string | null;
 };
 
 const INITIAL_POSTS: Post[] = [
@@ -242,7 +244,7 @@ const LEADERBOARD = [
 ];
 
 const TAGS = ["AI SaaS", "Bootstrapping", "Marketing", "Growth", "Product Hunt", "Build in Public"];
-const STARTUP_OPTIONS = ["None", "Hungryfilmcreator", "Looplane", "PromptDeck", "RevenueCanvas", "SignalNest"];
+const STARTUP_OPTIONS_FALLBACK = ["None"];
 
 function CommunityAvatar({ label, src }: { label: string; src?: string | null }) {
   return (
@@ -434,10 +436,12 @@ function ThreadedComment({
 export function FounderCommunityPage({
   totalFounders,
   totalStartups,
+  userStartups = [],
   currentUser,
 }: {
   totalFounders: number;
   totalStartups: number;
+  userStartups?: string[];
   currentUser?: {
     id: string;
     email: string | null;
@@ -445,6 +449,7 @@ export function FounderCommunityPage({
     avatarUrl: string | null;
   } | null;
 }) {
+  const STARTUP_OPTIONS = useMemo(() => ["None", ...userStartups], [userStartups]);
   function getAvatarLabel(url: string | null | undefined, nameLabel: string) {
     if (url) return ""; // Image will be used
     return nameLabel[0]?.toUpperCase() || "F";
@@ -474,7 +479,7 @@ export function FounderCommunityPage({
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const supabase = createClient() as any;
   const userLookupRef = useRef<Record<string, { name: string | null; email: string | null; avatar_url: string | null }>>({});
-  const startupLookupRef = useRef<Record<string, string>>({});
+  const startupLookupRef = useRef<Record<string, { id: string; slug: string | null }>>({});
   const isLoggedIn = Boolean(currentUser?.id);
   const displayName = currentUser?.name || (currentUser?.email ? currentUser.email.split("@")[0] : "You");
   const displayAvatar = (displayName?.[0] ?? "Y").toUpperCase();
@@ -507,7 +512,7 @@ export function FounderCommunityPage({
   }, [posts]);
 
   const leaderboardItems = useMemo(() => {
-    const grouped = new Map<string, { founder: string; startup: string; startupId?: string; points: number; avatar: string; avatarUrl?: string | null; bestPostUpvotes: number }>();
+    const grouped = new Map<string, { founder: string; startup: string; startupId?: string; startupSlug?: string | null; points: number; avatar: string; avatarUrl?: string | null; bestPostUpvotes: number }>();
 
     posts.forEach((post) => {
       const key = post.authorId ?? `${post.founder}:${post.startup}`;
@@ -518,6 +523,7 @@ export function FounderCommunityPage({
           founder: post.founder,
           startup: post.startup,
           startupId: post.startupId,
+          startupSlug: post.startupSlug,
           points: post.upvotes,
           avatar: post.avatar,
           avatarUrl: post.avatarUrl,
@@ -530,6 +536,7 @@ export function FounderCommunityPage({
       if (post.upvotes >= existing.bestPostUpvotes) {
         existing.startup = post.startup;
         existing.startupId = post.startupId;
+        existing.startupSlug = post.startupSlug;
         existing.avatar = post.avatar;
         existing.avatarUrl = post.avatarUrl;
         existing.bestPostUpvotes = post.upvotes;
@@ -588,11 +595,11 @@ export function FounderCommunityPage({
 
     const { data: startupRows } = await supabase
       .from("startups")
-      .select("id, name")
+      .select("id, name, slug")
       .in("name", startupNames);
 
-    const lookup = ((startupRows ?? []) as StartupRow[]).reduce<Record<string, string>>((acc, startup) => {
-      acc[startup.name] = startup.id;
+    const lookup = ((startupRows ?? []) as StartupRow[]).reduce<Record<string, { id: string; slug: string | null }>>((acc, startup) => {
+      acc[startup.name] = { id: startup.id, slug: startup.slug };
       return acc;
     }, {});
 
@@ -600,7 +607,8 @@ export function FounderCommunityPage({
 
     return inputPosts.map((post) => ({
       ...post,
-      startupId: lookup[post.startup],
+      startupId: lookup[post.startup]?.id,
+      startupSlug: lookup[post.startup]?.slug,
     }));
   }
 
@@ -661,6 +669,7 @@ export function FounderCommunityPage({
     const upvoteRows = (upvoteRes.data || []) as UpvoteRow[];
     const commentUpvoteRows = (commentUpvoteRes.data || []) as CommentUpvoteRow[];
 
+    const founderPoints: Record<string, { points: number; name: string; avatarUrl: string | null; startup: string; startupId: string | undefined; startupSlug: string | null | undefined }> = {};
     const userLookup: Record<string, { name: string | null; email: string | null; avatar_url: string | null }> = { ...userLookupRef.current };
     const commentUpvoteCounts: Record<string, number> = {};
     const commentUpvotedSet = new Set<string>();
@@ -811,7 +820,8 @@ export function FounderCommunityPage({
               createdAt: post.created_at,
               founder: authorLabel,
               startup: post.startup ?? "Independent founder",
-              startupId: post.startup ? startupLookupRef.current[post.startup] : undefined,
+              startupId: post.startup ? startupLookupRef.current[post.startup]?.id : undefined,
+              startupSlug: post.startup ? startupLookupRef.current[post.startup]?.slug : undefined,
               time: formatTimeLabel(post.created_at),
               text: post.content,
               tags: post.tags ?? [],
@@ -1357,7 +1367,7 @@ export function FounderCommunityPage({
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                               {post.startupId ? (
                                 <Link
-                                  href={`/startup/${post.startupId}`}
+                                  href={`/startup/${post.startupSlug || post.startupId}`}
                                   style={{
                                     fontSize: 13,
                                     color: "var(--color-accent)",
@@ -1637,7 +1647,7 @@ export function FounderCommunityPage({
               {leaderboardItems.map((item, index) => (
                 <Link
                   key={item.authorId ?? `${item.founder}-${index}`}
-                  href={item.startupId ? `/startup/${item.startupId}` : "/leaderboard"}
+                  href={item.startupId ? `/startup/${item.startupSlug || item.startupId}` : "/leaderboard"}
                   className="glass"
                   style={{
                     padding: 14,

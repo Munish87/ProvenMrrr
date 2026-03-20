@@ -8,9 +8,9 @@ export default function PrivacyPolicy() {
   return (
     <div className="main-col">
       <div className="card" style={{ padding: "48px", position: "relative" }}>
-        <Link 
-          href="/" 
-          className="btn btn-secondary" 
+        <Link
+          href="/"
+          className="btn btn-secondary"
           style={{ position: "absolute", top: "24px", right: "24px", width: "40px", height: "40px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%" }}
         >
           <X size={20} />
@@ -58,7 +58,7 @@ export default function PrivacyPolicy() {
         <section style={{ marginBottom: "32px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "16px" }}>5. Contact Us</h2>
           <p style={{ color: "var(--color-secondary)", marginBottom: "16px" }}>
-            If you have questions or comments about this policy, you may email us at legal@provenmrr.com.
+            If you have questions or comments about this policy, you may reach out to us via our <Link href="/contact" style={{ color: "var(--color-accent)", fontWeight: 600 }}>Contact Page</Link>.
           </p>
         </section>
 

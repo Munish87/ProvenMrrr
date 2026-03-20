@@ -277,6 +277,30 @@ export type Database = {
           },
         ]
       }
+      contact_inquiries: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          message: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          message: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          message?: string
+          status?: string | null
+        }
+        Relationships: []
+      }
       health_scores: {
         Row: {
           ai_summary: string | null
@@ -467,6 +491,8 @@ export type Database = {
           is_anonymous: boolean
           is_listed_for_sale: boolean
           is_verified: boolean
+          listing_paid: boolean | null
+          listing_paid_at: string | null
           logo_url: string | null
           looking_for_cofounder: boolean | null
           monthly_revenue: number | null
@@ -478,6 +504,7 @@ export type Database = {
           sale_status_override: string | null
           slug: string | null
           source: string
+          stripe_session_id: string | null
           tags: string[] | null
           verified: boolean | null
           website_url: string | null
@@ -501,6 +528,8 @@ export type Database = {
           is_anonymous?: boolean
           is_listed_for_sale?: boolean
           is_verified?: boolean
+          listing_paid?: boolean | null
+          listing_paid_at?: string | null
           logo_url?: string | null
           looking_for_cofounder?: boolean | null
           monthly_revenue?: number | null
@@ -512,6 +541,7 @@ export type Database = {
           sale_status_override?: string | null
           slug?: string | null
           source?: string
+          stripe_session_id?: string | null
           tags?: string[] | null
           verified?: boolean | null
           website_url?: string | null
@@ -535,6 +565,8 @@ export type Database = {
           is_anonymous?: boolean
           is_listed_for_sale?: boolean
           is_verified?: boolean
+          listing_paid?: boolean | null
+          listing_paid_at?: string | null
           logo_url?: string | null
           looking_for_cofounder?: boolean | null
           monthly_revenue?: number | null
@@ -546,6 +578,7 @@ export type Database = {
           sale_status_override?: string | null
           slug?: string | null
           source?: string
+          stripe_session_id?: string | null
           tags?: string[] | null
           verified?: boolean | null
           website_url?: string | null
@@ -570,6 +603,7 @@ export type Database = {
           last_synced_at: string | null
           provider: string
           startup_id: string
+          stripe_account_id: string | null
         }
         Insert: {
           api_key_hash?: string | null
@@ -579,6 +613,7 @@ export type Database = {
           last_synced_at?: string | null
           provider?: string
           startup_id: string
+          stripe_account_id?: string | null
         }
         Update: {
           api_key_hash?: string | null
@@ -588,6 +623,7 @@ export type Database = {
           last_synced_at?: string | null
           provider?: string
           startup_id?: string
+          stripe_account_id?: string | null
         }
         Relationships: [
           {
