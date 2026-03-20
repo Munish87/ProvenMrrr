@@ -51,7 +51,7 @@ export async function submitContactInquiry(formData: FormData) {
                 const recipient = process.env.CONTACT_FORM_RECEIVER || "mennyparmar@gmail.com";
                 
                 const { error: mailError } = await resend.emails.send({
-                    from: "ProvenMRR <onboarding@resend.dev>",
+                    from: "ProvenMRR <notifications@provenmrr.com>",
                     to: [recipient],
                     subject: `New Contact Inquiry from ${email}`,
                     text: `From: ${email}\n\nMessage:\n${problem}`,
