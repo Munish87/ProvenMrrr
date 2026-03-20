@@ -34,7 +34,8 @@ export default function ContactPage() {
             }
         } catch (error) {
             setStatus("error");
-            setMessage("Something went wrong. Please try again later.");
+            setMessage(error instanceof Error ? error.message : "An unexpected error occurred. Please try again.");
+            console.error("Contact Form Error:", error);
         }
     };
 

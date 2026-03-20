@@ -68,6 +68,13 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "https://provenmrr.com",
   },
+  icons: {
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+      { url: "/logo-black.png", type: "image/png" },
+    ],
+    apple: "/logo-black.png",
+  },
 };
 
 import { FloatingNav } from "@/components/layout/FloatingNav";

@@ -1,7 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import resend from "@/lib/resend";
+import { Resend } from "resend";
+// We'll initialize this as needed to avoid module-level crashes if the key is missing
 import { z } from "zod";
 
 const ContactSchema = z.object({
@@ -31,7 +32,7 @@ export async function submitContactInquiry(formData: FormData) {
         // 2. Initialize Supabase
         if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
             console.error("Supabase environment variables are missing!");
-            return { success: false, error: "System configuration error. Please contact support." };
+            return { success: false, error: "System configuration error: Missing Supabase environment variables on live site." };
         }
 
         const supabase = await createClient();
@@ -46,10 +47,12 @@ export async function submitContactInquiry(formData: FormData) {
         // 4. Send email via Resend
         if (process.env.RESEND_API_KEY) {
             try {
-                // Import resend dynamically or ensure it doesn't throw on init
+                const resend = new Resend(process.env.RESEND_API_KEY);
+                const recipient = process.env.CONTACT_FORM_RECEIVER || "mennyparmar@gmail.com";
+                
                 const { error: mailError } = await resend.emails.send({
                     from: "ProvenMRR <onboarding@resend.dev>",
-                    to: ["mennyparmar@gmail.com"],
+                    to: [recipient],
                     subject: `New Contact Inquiry from ${email}`,
                     text: `From: ${email}\n\nMessage:\n${problem}`,
                     replyTo: email,
