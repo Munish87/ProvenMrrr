@@ -6,7 +6,8 @@ import { Navbar } from "@/components/layout/Navbar";
 import { getSaleStatusMap } from "@/lib/startup-sale-status";
 
 export const metadata = { title: "Browse Verified Startups — ProvenMRR" };
-export const dynamic = "force-dynamic";
+// Cache each unique URL for 60 seconds — ISR works per-URL so filter combos get their own cache entries
+export const revalidate = 60;
 
 export default async function BrowsePage(props: {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>
@@ -31,7 +32,6 @@ export default async function BrowsePage(props: {
     const offset = (page - 1) * limit;
 
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
 
     // 1. Build dynamic Supabase query
     let query = supabase
@@ -81,29 +81,44 @@ export default async function BrowsePage(props: {
         query = query.order("created_at", { ascending: false });
     }
 
-    // Pagination
-    const { data: startups, error, count } = await query.range(offset, offset + limit - 1);
+    // 2. Fetch user and startups in parallel
+    const [
+        { data: { user } },
+        { data: startups, error, count }
+    ] = await Promise.all([
+        supabase.auth.getUser(),
+        query.range(offset, offset + limit - 1)
+    ]);
     
     if (error) {
         console.error("Browse query error:", error);
     }
 
-    const ids = (startups || []).map((s) => s.id);
-    const saleStatusMap = await getSaleStatusMap(ids);
-
-    // 2. Fetch health scores for ONLY this page
-    const scoreMap = new Map<string, number>();
-    if (ids.length > 0) {
-        const { data: scores } = await supabase
-            .from("health_scores")
-            .select("startup_id, score")
-            .in("startup_id", ids)
-            .order("created_at", { ascending: false });
-        
-        for (const s of scores ?? []) {
-            if (!scoreMap.has(s.startup_id)) scoreMap.set(s.startup_id, s.score);
-        }
+    const ids = (startups || []).map((s: any) => s.id);
+    // Pass pre-fetched overrides to avoid a redundant DB round-trip
+    const overridesMap: Record<string, string | null> = {};
+    for (const s of (startups as any[]) || []) {
+        overridesMap[s.id] = (s as any).sale_status_override ?? null;
     }
+    // 2. Fetch sale status and health scores for ONLY this page in parallel
+    const [saleStatusMap, scoreMap] = await Promise.all([
+        getSaleStatusMap(ids, overridesMap),
+        (async () => {
+            const map = new Map<string, number>();
+            if (ids.length > 0) {
+                const { data: scores } = await supabase
+                    .from("health_scores")
+                    .select("startup_id, score")
+                    .in("startup_id", ids)
+                    .order("created_at", { ascending: false });
+                
+                for (const s of scores ?? []) {
+                    if (!map.has(s.startup_id)) map.set(s.startup_id, s.score);
+                }
+            }
+            return map;
+        })()
+    ]);
 
     let initialStartups: BrowseStartupNode[] = (startups || []).map(s => ({
         ...s,
@@ -130,7 +145,7 @@ export default async function BrowsePage(props: {
         <>
             <Navbar user={user} />
 
-            <div className="page-container" style={{ paddingTop: 84, paddingBottom: 72 }}>
+            <div className="page-container" style={{ paddingTop: 84, paddingBottom: 48 }}>
                 <BrowseFeed 
                     initialStartups={initialStartups} 
                     totalCount={count || 0}
@@ -147,7 +162,7 @@ export default async function BrowsePage(props: {
                     initialMaxMultiple={searchParams?.maxMultiple as string || "Any"}
                 />
                 
-                <div style={{ marginTop: 80, paddingTop: 56, borderTop: "1px solid rgba(255,255,255,0.42)" }}>
+                <div style={{ marginTop: 48, paddingTop: 42, borderTop: "1px solid var(--color-border)" }}>
                     <CategoryBrowser />
                 </div>
             </div>

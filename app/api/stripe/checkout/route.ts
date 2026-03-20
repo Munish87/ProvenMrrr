@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
             .single();
 
         if (error || !startup) {
-            return NextResponse.json({ error: "Startup not found or unauthorized" }, { status: 404 });
+            return NextResponse.json({ error: "Startup not found or you do not have permission to list it" }, { status: 404 });
         }
 
         const startupData = startup as any;

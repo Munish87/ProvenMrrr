@@ -26,7 +26,7 @@ export default async function DashboardStartupsPage({ searchParams }: { searchPa
     const { id: selectedId } = await searchParams;
 
     const { data: startups } = await supabase.from("startups").select("*").eq("owner_id", user.id).order("created_at", { ascending: false })
-        .returns<{ id: string; name: string; description: string | null; website_url: string | null; category: string | null; tech_stack: string[] | null; country: string | null; is_listed_for_sale: boolean; listing_fee_paid: boolean; is_anonymous: boolean; looking_for_cofounder: boolean; hide_real_time_revenue: boolean; insights: any; tags: string[]; logo_url: string | null; asking_price: number | null; profit_margin_30d: number | null; contact_email: string | null; sale_status_override: string | null; }[]>();
+        .returns<{ id: string; name: string; description: string | null; website_url: string | null; category: string | null; tech_stack: string[] | null; country: string | null; is_listed_for_sale: boolean; listing_paid: boolean; is_anonymous: boolean; looking_for_cofounder: boolean; hide_real_time_revenue: boolean; insights: any; tags: string[]; logo_url: string | null; asking_price: number | null; profit_margin_30d: number | null; contact_email: string | null; sale_status_override: string | null; }[]>();
     const activeStartup = startups?.find((s) => s.id === selectedId) || startups?.[0];
 
     async function updateStartup(formData: FormData) {
@@ -99,7 +99,7 @@ export default async function DashboardStartupsPage({ searchParams }: { searchPa
         const payload = {
             is_listed_for_sale: !currentStatus,
             ...(!currentStatus ? {} : { sale_status_override: null }),
-            ...(markListingAsPaid ? { listing_fee_paid: true } : {}),
+            ...(markListingAsPaid ? { listing_paid: true } : {}),
         };
         // @ts-ignore
         await supabaseServer.from("startups").update(payload).eq("id", id).eq("owner_id", currentUser.id);
@@ -252,7 +252,7 @@ export default async function DashboardStartupsPage({ searchParams }: { searchPa
                         id={activeStartup.id}
                         name={activeStartup.name}
                         isListedForSale={activeStartup.is_listed_for_sale}
-                        hasPaidListing={activeStartup.listing_fee_paid}
+                        hasPaidListing={activeStartup.listing_paid}
                         onToggle={handleToggleForSale}
                     />
 
@@ -308,7 +308,7 @@ export default async function DashboardStartupsPage({ searchParams }: { searchPa
                                     id={activeStartup.id}
                                     name={activeStartup.name}
                                     initialValue={activeStartup.is_listed_for_sale}
-                                    initialHasPaidListing={activeStartup.listing_fee_paid}
+                                    initialHasPaidListing={activeStartup.listing_paid}
                                     onToggle={handleToggleForSale}
                                 />
 

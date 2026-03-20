@@ -2,7 +2,8 @@ import { Navbar } from "@/components/layout/Navbar";
 import { FounderCommunityPage } from "@/components/community/FounderCommunityPage";
 import { createClient } from "@/lib/supabase/server";
 
-export const dynamic = "force-dynamic";
+// Cache for 2 minutes — counts don't need to be real-time
+export const revalidate = 120;
 
 export const metadata = {
   title: "Founder Community - ProvenMRR",

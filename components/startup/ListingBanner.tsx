@@ -44,7 +44,7 @@ export function ListingBanner({ id, name, isListedForSale, hasPaidListing, onTog
                 },
                 (payload) => {
                     const updatedStartup = payload.new as any;
-                    if (updatedStartup.listing_fee_paid) {
+                    if (updatedStartup.listing_paid) {
                         setListingUnlocked(true);
                         if (typeof window !== "undefined") {
                             window.localStorage.setItem(`provenmrr-listing-paid:${id}`, "true");

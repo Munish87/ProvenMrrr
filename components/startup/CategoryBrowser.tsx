@@ -52,7 +52,7 @@ export function CategoryBrowser({
     activeSlug?: string
 }) {
     return (
-        <section style={{ marginTop: activeSlug ? 0 : 64, marginBottom: activeSlug ? 0 : 80 }}>
+        <section style={{ marginTop: activeSlug ? 0 : 32, marginBottom: activeSlug ? 0 : 40 }}>
             <div style={{ textAlign: "center", marginBottom: 40 }}>
                 <h2 style={{
                     fontSize: 24,
@@ -86,6 +86,7 @@ export function CategoryBrowser({
                     borderRadius: 40,
                     background: "var(--color-surface)",
                     boxShadow: "var(--shadow-card)",
+                    border: "1px solid var(--color-border)",
                 }}
             >
                 <div style={{

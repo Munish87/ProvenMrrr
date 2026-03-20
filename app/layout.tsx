@@ -99,15 +99,16 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="antialiased" suppressHydrationWarning style={{ backgroundColor: "var(--color-bg)", display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <body className="antialiased" suppressHydrationWarning style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         <div
           aria-hidden="true"
+          className="theme-overlay"
           style={{
             position: "fixed",
             inset: 0,
             pointerEvents: "none",
             zIndex: -1,
-            background: "var(--app-shell-overlay)",
+            background: "var(--app-shell-overlay, transparent)",
           }}
         />
         <AuthProvider>

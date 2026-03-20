@@ -108,14 +108,12 @@ export default async function StartupProfilePage({ params }: Props) {
 
     const adminSupabase = createAdminClient();
     
-    // 2. Fetch secondary data in parallel
+    // 2. Fetch secondary data in parallel (no saleStatusMap here — derived below from startup row)
     const [
-        saleStatusMap,
         { data: healthScore },
         { data: conn },
         { data: snapshots }
     ] = await Promise.all([
-        getSaleStatusMap([startup.id]),
         supabase.from("health_scores").select("score, risk_level, ai_summary, created_at").eq("startup_id", startup.id)
             .order("created_at", { ascending: false }).limit(1)
             .maybeSingle(),
@@ -137,28 +135,40 @@ export default async function StartupProfilePage({ params }: Props) {
     let insights = startup.insights as StartupInsights | null;
     const isDev = process.env.NODE_ENV !== "production";
 
-    // Automatic Enrichment for TrustMRR startups missing insights
+    // Fire-and-forget enrichment — do NOT await, serve the page immediately
     if (startup.source === "trustmrr" && startup.slug && (!insights || Object.keys(insights).length <= 1)) {
-        const enriched = await TrustMRRImporter.enrichStartup(startup.slug);
-        if (enriched.success && enriched.data) {
-            Object.assign(startup, enriched.data);
-            insights = enriched.data.insights as StartupInsights;
-            if (isDev) console.log(`[ProfileEnrichment] Successfully enriched ${startup.slug}`);
-        }
+        TrustMRRImporter.enrichStartup(startup.slug)
+            .then((enriched) => {
+                if (enriched.success && enriched.data && isDev) {
+                    console.log(`[ProfileEnrichment] Enriched ${startup.slug}`);
+                }
+            })
+            .catch(() => {});
     }
 
+    // Pass pre-fetched override to avoid a redundant DB round-trip in getSaleStatusMap
+    const overridesMap: Record<string, string | null> = {
+        [startup.id]: (startup as any).sale_status_override ?? null,
+    };
+    // Check offers to determine final sale status (e.g. "offers" when pending bids exist)
+    const saleStatusMap = await getSaleStatusMap([startup.id], overridesMap);
     const saleStatus = saleStatusMap.get(startup.id) ?? (startup.is_listed_for_sale ? "sale" : null);
 
     let initialSaved = false;
-    if (user) {
-        const { data: existingWatchlist } = await supabase
-            .from("watchlists")
-            .select("id")
-            .eq("startup_id", startup.id)
-            .eq("user_id", user.id)
-            .maybeSingle();
-        if (existingWatchlist) initialSaved = true;
-    }
+    let ownerProfile: { name: string | null; x_handle: string | null; avatar_url: string | null } | null = null;
+
+    // Fetch watchlist + owner profile in parallel
+    const [watchlistResult, ownerProfileResult] = await Promise.all([
+        user && startup.id
+            ? supabase.from("watchlists").select("id").eq("startup_id", startup.id).eq("user_id", user.id).maybeSingle()
+            : Promise.resolve({ data: null }),
+        startup.claimed_by_user_id
+            ? supabase.from("users").select("name, x_handle, avatar_url").eq("id", startup.claimed_by_user_id).returns<{ name: string | null; x_handle: string | null; avatar_url: string | null }[]>().single()
+            : Promise.resolve({ data: null }),
+    ]);
+
+    if (watchlistResult.data) initialSaved = true;
+    ownerProfile = (ownerProfileResult.data ?? null) as { name: string | null; x_handle: string | null; avatar_url: string | null } | null;
 
     let latestSnap = null;
     let liveCountry: string | null = null;
@@ -166,77 +176,72 @@ export default async function StartupProfilePage({ params }: Props) {
     let chartData: { month: string; mrr: number; atr: number }[] = [];
 
     if (conn) {
-        try {
-            const apiKey = decryptApiKey(conn.encrypted_api_key);
-            const providerData = await fetchProviderData(conn.provider as any, apiKey);
-            liveCountry = providerData.metadata?.country || null;
-            liveFoundedDate = providerData.metadata?.founded_date || null;
-            // Update latest snap with live data
-            const m = providerData.metrics;
-            console.log("LIVE STRIPE METRICS:", m);
-            console.log("LIVE THIS MONTH REVENUE:", m.last30DaysRevenue);
-            latestSnap = {
-                mrr: m.mrr,
-                arr: m.arr,
-                all_time_revenue: m.allTimeRevenue,
-                growth_rate: m.momGrowthRate,
-                customer_count: m.customerCount,
-                churn_rate: m.churnRate,
-                volatility_score: m.volatilityScore,
-                refund_rate: m.refundRate,
-                last30DaysRevenue: m.last30DaysRevenue,
-            };
-            let cumulativeAtr = 0;
-            chartData = m.revenueByMonth.map(point => {
-                cumulativeAtr += point.revenue;
-                const d = new Date(point.date);
-                return { 
-                    month: d.toLocaleString("en-US", { month: "short", year: "2-digit" }), 
-                    mrr: m.mrr, 
-                    atr: cumulativeAtr 
-                };
-            }) as any;
+        // Only call the live Stripe API if we don't have a fresh snapshot from today.
+        // This is the single biggest source of page slowness — Stripe calls can take 5-10s.
+        const todayDate = new Date().toISOString().split("T")[0];
+        const hasFreshSnapshot = snapshots && snapshots.length > 0 &&
+            snapshots[snapshots.length - 1].snapshot_date >= todayDate;
 
-            // Fire-and-forget: Sync live metrics back to DB for the browse page feed
-            if (m.mrr !== undefined && m.mrr !== null) {
-                adminSupabase.from("startups").update({
-                    monthly_revenue: m.mrr,
-                    revenue_30d: m.last30DaysRevenue || m.mrr,
-                    growth_rate: m.momGrowthRate
-                }).eq("id", startup.id).then(({error}) => {
-                    if (error) console.error("Failed to sync live metrics:", error);
-                });
-
-                const todaySnapDate = new Date().toISOString().split("T")[0];
-                const snapData = {
-                    startup_id: startup.id,
-                    snapshot_date: todaySnapDate,
+        if (!hasFreshSnapshot) {
+            try {
+                const apiKey = decryptApiKey(conn.encrypted_api_key);
+                const providerData = await fetchProviderData(conn.provider as any, apiKey);
+                liveCountry = providerData.metadata?.country || null;
+                liveFoundedDate = providerData.metadata?.founded_date || null;
+                const m = providerData.metrics;
+                latestSnap = {
                     mrr: m.mrr,
-                    arr: m.arr || (m.mrr * 12),
-                    all_time_revenue: m.allTimeRevenue || 0,
-                    growth_rate: m.momGrowthRate || 0,
-                    customer_count: m.customerCount || 0,
-                    churn_rate: m.churnRate || 0,
-                    volatility_score: m.volatilityScore || 0,
-                    refund_rate: m.refundRate || 0
+                    arr: m.arr,
+                    all_time_revenue: m.allTimeRevenue,
+                    growth_rate: m.momGrowthRate,
+                    customer_count: m.customerCount,
+                    churn_rate: m.churnRate,
+                    volatility_score: m.volatilityScore,
+                    refund_rate: m.refundRate,
+                    last30DaysRevenue: m.last30DaysRevenue,
                 };
+                let cumulativeAtr = 0;
+                chartData = m.revenueByMonth.map((point: any) => {
+                    cumulativeAtr += point.revenue;
+                    const d = new Date(point.date);
+                    return {
+                        month: d.toLocaleString("en-US", { month: "short", year: "2-digit" }),
+                        mrr: m.mrr,
+                        atr: cumulativeAtr,
+                    };
+                }) as any;
 
-                adminSupabase.from("revenue_snapshots")
-                    .upsert(snapData, { onConflict: "startup_id,snapshot_date" })
-                    .then(({ error: upsertError }) => {
-                        if (upsertError) {
-                            console.error("Failed to sync revenue snapshot:", {
-                                code: upsertError.code,
-                                message: upsertError.message,
-                                details: upsertError.details,
-                                startup_id: startup.id,
-                                date: todaySnapDate
-                            });
-                        }
+                // Fire-and-forget: sync live metrics back to DB
+                if (m.mrr !== undefined && m.mrr !== null) {
+                    adminSupabase.from("startups").update({
+                        monthly_revenue: m.mrr,
+                        revenue_30d: m.last30DaysRevenue || m.mrr,
+                        growth_rate: m.momGrowthRate
+                    }).eq("id", startup.id).then(({ error }) => {
+                        if (error) console.error("Failed to sync live metrics:", error);
                     });
+
+                    const snapData = {
+                        startup_id: startup.id,
+                        snapshot_date: todayDate,
+                        mrr: m.mrr,
+                        arr: m.arr || (m.mrr * 12),
+                        all_time_revenue: m.allTimeRevenue || 0,
+                        growth_rate: m.momGrowthRate || 0,
+                        customer_count: m.customerCount || 0,
+                        churn_rate: m.churnRate || 0,
+                        volatility_score: m.volatilityScore || 0,
+                        refund_rate: m.refundRate || 0,
+                    };
+                    adminSupabase.from("revenue_snapshots")
+                        .upsert(snapData, { onConflict: "startup_id,snapshot_date" })
+                        .then(({ error: upsertError }) => {
+                            if (upsertError) console.error("Failed to sync revenue snapshot:", upsertError.message);
+                        });
+                }
+            } catch (e) {
+                console.error("Failed to fetch live Stripe data:", e);
             }
-        } catch (e) {
-            console.error("Failed to fetch live real constraints:", e);
         }
     }
 
@@ -286,13 +291,6 @@ export default async function StartupProfilePage({ params }: Props) {
             ai_summary: healthResult.aiSummary,
         }, { onConflict: "startup_id" });
         if (healthSyncError) console.error("Failed to sync on-the-fly health score:", healthSyncError);
-    }
-
-    let ownerProfile: { name: string | null; x_handle: string | null; avatar_url: string | null } | null = null;
-    if (startup.claimed_by_user_id) {
-        const { data: profile } = await supabase.from("users").select("name, x_handle, avatar_url").eq("id", startup.claimed_by_user_id)
-            .returns<{ name: string | null; x_handle: string | null; avatar_url: string | null }[]>().single();
-        ownerProfile = profile;
     }
 
     const resolvedXHandle = ownerProfile?.x_handle || startup.x_handle;

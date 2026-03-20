@@ -81,41 +81,22 @@ export default async function CoFoundersPage(props: { searchParams: Promise<{ q?
         }
     }
 
-    // Fetch X Data in parallel
-    const enhancedStartups = await Promise.all(startups.map(async (startup) => {
+    // 3. (OPTIMIZED) Merge local data without external fetches
+    const enhancedStartups = startups.map((startup) => {
         const ownerProfile = startup.claimed_by_user_id ? userMap.get(startup.claimed_by_user_id) : null;
         const resolvedXHandle = ownerProfile?.x_handle || startup.x_handle;
         const resolvedFounderName = ownerProfile?.name;
-
-        let xData: { name?: string; avatar_url?: string } | null = null;
-        if (resolvedXHandle) {
-            const cleanXHandle = resolvedXHandle.replace(/^https?:\/\/(www\.)?(x\.com|twitter\.com)\//, "").replace("@", "");
-            try {
-                const res = await fetch(`https://api.fxtwitter.com/${cleanXHandle}`, { next: { revalidate: 3600 } });
-                if (res.ok) {
-                    const json = await res.json();
-                    if (json.code === 200 && json.user) {
-                        xData = {
-                            name: json.user.name,
-                            avatar_url: json.user.avatar_url,
-                        };
-                    }
-                }
-            } catch (e) {
-                // Ignore silent fetch failures
-            }
-        }
 
         const snap = snapMap.get(startup.id);
 
         return {
             ...startup,
-            founderName: resolvedFounderName || xData?.name || (resolvedXHandle ? `@${resolvedXHandle.replace(/^https?:\/\/(www\.)?(x\.com|twitter\.com)\//, "").replace("@", "")}` : "Founder"),
-            founderAvatar: xData?.avatar_url,
+            founderName: resolvedFounderName || (resolvedXHandle ? `@${resolvedXHandle.replace(/^https?:\/\/(www\.)?(x\.com|twitter\.com)\//, "").replace("@", "")}` : "Founder"),
+            founderAvatar: null, // We could add a system-avatar logic here if needed
             mrr: snap?.mrr ?? 0,
             totalRevenue: snap?.all_time_revenue ?? 0,
         };
-    }));
+    });
 
     return (
         <>

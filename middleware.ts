@@ -2,8 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 const PROTECTED_PATHS = ["/dashboard"];
+const AUTH_PATHS = ["/login", "/signup"];
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
+    const { pathname } = request.nextUrl;
+
+    const isProtected = PROTECTED_PATHS.some((path) => pathname.startsWith(path));
+    const isAuthPath = AUTH_PATHS.includes(pathname);
+
+    // Only run the Supabase auth check when actually needed.
+    // For all other routes, skip the network call entirely.
+    if (!isProtected && !isAuthPath) {
+        return NextResponse.next({ request });
+    }
+
     let supabaseResponse = NextResponse.next({ request });
 
     const supabase = createServerClient(
@@ -27,16 +39,9 @@ export async function proxy(request: NextRequest) {
         }
     );
 
-    // Refresh session
     const {
         data: { user },
     } = await supabase.auth.getUser();
-
-    const { pathname } = request.nextUrl;
-
-    const isProtected = PROTECTED_PATHS.some((path) =>
-        pathname.startsWith(path)
-    );
 
     if (isProtected && !user) {
         const loginUrl = request.nextUrl.clone();
@@ -46,7 +51,7 @@ export async function proxy(request: NextRequest) {
     }
 
     // Auth pages — redirect authenticated users to dashboard
-    if ((pathname === "/login" || pathname === "/signup") && user) {
+    if (isAuthPath && user) {
         const dashboardUrl = request.nextUrl.clone();
         dashboardUrl.pathname = "/dashboard";
         return NextResponse.redirect(dashboardUrl);
@@ -56,7 +61,13 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-    routes: [
-        "/((?!_next/static|_next/image|favicon.ico|api/webhooks).*)",
+    matcher: [
+        /*
+         * Match all request paths except for the ones starting with:
+         * - _next/static (static files)
+         * - _next/image (image optimization files)
+         * - favicon.ico (favicon file)
+         */
+        "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
     ],
 };

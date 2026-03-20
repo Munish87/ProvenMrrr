@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { saveBuyerInteraction } from "@/app/actions/matchmaking";
+import { saveBuyerInteraction, getMatchedStartups } from "@/app/actions/matchmaking";
 import { Settings, Heart, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { MatchmakingStack } from "@/components/matchmaking/MatchmakingStack";
-import { Navbar } from "@/components/layout/Navbar";
 
 type Match = {
     startup: any;
@@ -19,23 +18,14 @@ export default function MatchesDashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Mock user for Navbar (this is a client component, but we need auth state)
-    // In a real scenario, this would come from a provider or hook
-    const [user, setUser] = useState<any>(null);
-
     useEffect(() => {
         async function fetchInitialData() {
             try {
-                // Fetch user
-                const userRes = await fetch("/api/auth/session"); // Assuming there's a session route or use supabase client
-                // For simplicity in this UI redesign, we'll assume the layout or a hook provides user
-                
                 setError(null);
-                const response = await fetch("/api/debug/matchmaking");
-                const res = await response.json();
+                const res = await getMatchedStartups();
                 
                 if (res.success && res.matches) {
-                    setMatches(res.matches);
+                    setMatches(res.matches as Match[]);
                 } else if (!res.success) {
                     setError(res.error || "Failed to load matches");
                 }
@@ -66,7 +56,6 @@ export default function MatchesDashboard() {
 
     return (
         <>
-
             <div className="page-container" style={{ paddingTop: 100, paddingBottom: 100 }}>
                 {/* Header Section */}
                 <div style={{ 

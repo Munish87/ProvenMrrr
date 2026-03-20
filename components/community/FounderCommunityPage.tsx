@@ -632,44 +632,61 @@ export function FounderCommunityPage({
     const start = isAppend ? posts.length : 0;
     const end = start + 19; // Fetch 20 posts
 
-    // We fetch posts with the range
-    const postQuery = supabase
+    // 1. Fetch posts with range
+    const { data: postRows, error: postError } = await supabase
       .from("community_posts")
       .select("*, users:users!community_posts_user_id_fkey(name, email, avatar_url)")
       .order("created_at", { ascending: false })
       .range(start, end);
 
-    const [postRes, commentRes, upvoteRes, commentUpvoteRes] = await Promise.all([
-      postQuery,
-      supabase
-        .from("community_comments")
-        .select("*, users:users!community_comments_user_id_fkey(name, email, avatar_url)"),
-      supabase
-        .from("community_post_upvotes")
-        .select("post_id, user_id"),
-      supabase
-        .from("community_comment_upvotes")
-        .select("comment_id, user_id")
-    ]);
-
-    if (postRes.error) {
-      console.error("Posts fetch error:", postRes.error);
-      const errorDetail = postRes.error.message || postRes.error.details || postRes.error.hint || "Unknown fetch error";
-      setDraftError(`Failed to load posts: ${errorDetail} (${JSON.stringify(postRes.error)})`);
+    if (postError) {
+      console.error("Posts fetch error:", postError);
+      const errorDetail = postError.message || postError.details || postError.hint || "Unknown fetch error";
+      setDraftError(`Failed to load posts: ${errorDetail} (${JSON.stringify(postError)})`);
       setIsLoading(false);
       return;
     }
 
+    const currentPostIds = (postRows || []).map((p: any) => p.id);
+    
+    // If no posts, we are done
+    if (currentPostIds.length === 0) {
+      setIsLoading(false);
+      setHasMore(false);
+      return;
+    }
+
+    // 2. Fetch only relevant comments and upvotes for these specific posts
+    const [commentRes, upvoteRes] = await Promise.all([
+      supabase
+        .from("community_comments")
+        .select("*, users:users!community_comments_user_id_fkey(name, email, avatar_url)")
+        .in("post_id", currentPostIds),
+      supabase
+        .from("community_post_upvotes")
+        .select("post_id, user_id")
+        .in("post_id", currentPostIds)
+    ]);
+
     if (commentRes.error) console.error("Comments fetch error:", commentRes.error);
     if (upvoteRes.error) console.warn("Upvotes fetch error:", upvoteRes.error);
-    if (commentUpvoteRes.error) console.warn("Comment upvotes fetch error:", commentUpvoteRes.error);
 
-    const postRows = (postRes.data || []) as PostRow[];
     const commentRows = (commentRes.data || []) as CommentRow[];
     const upvoteRows = (upvoteRes.data || []) as UpvoteRow[];
-    const commentUpvoteRows = (commentUpvoteRes.data || []) as CommentUpvoteRow[];
+    const currentCommentIds = commentRows.map(c => c.id);
 
-    const founderPoints: Record<string, { points: number; name: string; avatarUrl: string | null; startup: string; startupId: string | undefined; startupSlug: string | null | undefined }> = {};
+    // 3. Fetch upvotes ONLY for these comments
+    let commentUpvoteRows: CommentUpvoteRow[] = [];
+    if (currentCommentIds.length > 0) {
+      const { data: cUpvotes, error: cUpvoteError } = await supabase
+        .from("community_comment_upvotes")
+        .select("comment_id, user_id")
+        .in("comment_id", currentCommentIds);
+      
+      if (cUpvoteError) console.warn("Comment upvotes fetch error:", cUpvoteError);
+      else commentUpvoteRows = (cUpvotes || []) as CommentUpvoteRow[];
+    }
+
     const userLookup: Record<string, { name: string | null; email: string | null; avatar_url: string | null }> = { ...userLookupRef.current };
     const commentUpvoteCounts: Record<string, number> = {};
     const commentUpvotedSet = new Set<string>();

@@ -18,19 +18,17 @@ export const revalidate = 600;
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   const baseSelect = "id, name, slug, logo_url, category, description, x_handle, owner_id, claimed_by_user_id, is_listed_for_sale, asking_price, is_verified, is_anonymous, verified, created_at, sale_status_override, monthly_revenue, growth_rate, revenue_30d";
 
-  // 1. Fetch targeted sections in parallel
+  // 1. Fetch targeted sections and user in parallel
   const [
+    { data: { user } },
     { data: recentlyListedRaw },
     { data: bestDealsRaw },
     { data: fastestGrowingRaw },
     { data: leaderboardRaw }
   ] = await Promise.all([
+    supabase.auth.getUser(),
     // Recently listed
     supabase.from("startups").select(baseSelect).order("created_at", { ascending: false }).limit(3),
     // Best deals (listed for sale)
@@ -48,9 +46,13 @@ export default async function HomePage() {
     ...(leaderboardRaw || [])
   ];
 
-  // 2. Fetch sale status map only for the displayed startups
-  const startupIds = Array.from(new Set(allStartupsForStatus.map(s => s.id)));
-  const saleStatusMap = await getSaleStatusMap(startupIds);
+  // 2. Build overrides from already-fetched data and check offers only
+  const startupIds = Array.from(new Set(allStartupsForStatus.map((s: any) => s.id)));
+  const overridesMap: Record<string, string | null> = {};
+  for (const s of allStartupsForStatus) {
+    overridesMap[(s as any).id] = (s as any).sale_status_override ?? null;
+  }
+  const saleStatusMap = await getSaleStatusMap(startupIds, overridesMap);
 
   const founderIds = Array.from(
     new Set(
