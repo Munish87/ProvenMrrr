@@ -96,7 +96,17 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ url: session.url });
     } catch (err: any) {
-        console.error("[Stripe Checkout Error]:", err);
-        return NextResponse.json({ error: err.message || "A processing error occurred" }, { status: 500 });
+        const errorMessage = err?.message || "Unknown error";
+        const errorStack = err?.stack || "";
+        const errorDetail = JSON.stringify(err, null, 2);
+        
+        console.error("[Stripe Checkout Error]:", errorMessage, errorDetail);
+        
+        // Return detailed error for debugging temporarily
+        return NextResponse.json({ 
+            error: errorMessage,
+            details: errorDetail,
+            stack: errorStack
+        }, { status: 500 });
     }
 }
