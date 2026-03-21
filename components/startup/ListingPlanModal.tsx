@@ -57,13 +57,26 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
     }, [isOpen, startupId, onConfirm]);
 
     const handleProceedToPayment = useCallback(async () => {
+        if (isProcessing) return;
         setIsProcessing(true);
         setError(null);
+
+        // Final check for currency if it's still default
+        let finalCurrency = currency;
+        if (finalCurrency === "usd") {
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const offset = new Date().getTimezoneOffset();
+            const locale = typeof window !== "undefined" ? window.navigator.language : "";
+            if (tz.includes("Asia") || tz.includes("Kolkata") || tz.includes("Calcutta") || offset === -330 || locale.includes("IN")) {
+                finalCurrency = "inr";
+            }
+        }
+
         try {
             const res = await fetch("/api/stripe/checkout", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ startupId, currency }),
+                body: JSON.stringify({ startupId, currency: finalCurrency }),
                 credentials: "include",
             });
             const data = await res.json();

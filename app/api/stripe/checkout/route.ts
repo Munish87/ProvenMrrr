@@ -69,6 +69,7 @@ export async function POST(req: NextRequest) {
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
             billing_address_collection: "required",
+            phone_number_collection: { enabled: true },
             customer_email: user.email ?? undefined,
             line_items: [
                 {
@@ -77,7 +78,6 @@ export async function POST(req: NextRequest) {
                         product_data: {
                             name: `ProvenMRR Listing Fee`,
                             description: `List "${startupData.name}" in the marketplace for sale. Priority placement for 30 days.`,
-                            images: [],
                         },
                         unit_amount: unitAmount,
                     },
@@ -89,6 +89,7 @@ export async function POST(req: NextRequest) {
             cancel_url: `${appUrl}/dashboard/startups?id=${startupId}`,
             metadata: {
                 startupId: startupId,
+                userId: user.id,
                 type: "listing_fee",
             },
         });
