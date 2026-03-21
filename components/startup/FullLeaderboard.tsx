@@ -137,16 +137,16 @@ export function FullLeaderboard({ initialEntries }: { initialEntries: LBEntry[] 
                 }}
             >
                 {/* Table wrapper */}
-                <div style={{ overflowX: "visible" }}>
-                    <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "separate", borderSpacing: "0 10px" }}>
+                <div style={{ overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" }}>
+                    <table style={{ width: "100%", minWidth: "850px", borderCollapse: "separate", borderSpacing: "0 10px" }}>
                     <thead>
                         <tr>
-                            <th style={{ padding: "0 20px", textAlign: "center", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6, width: "5%" }}>#</th>
-                            <th style={{ padding: "0 20px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6, width: "28%" }}>Startup</th>
-                            <th style={{ padding: "0 20px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6, width: "18%" }}>Founder</th>
-                            <th style={{ padding: "0 20px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6, width: "26%" }}>{view.toUpperCase()}</th>
-                            <th style={{ padding: "0 20px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6, width: "12%" }}>MULTIPLE</th>
-                            <th style={{ padding: "0 20px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6, width: "13%" }}>MoM Growth</th>
+                            <th style={{ padding: "0 20px", textAlign: "center", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6, width: 40 }}>#</th>
+                            <th style={{ padding: "0 20px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6 }}>Startup</th>
+                            <th style={{ padding: "0 20px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6 }}>Founder</th>
+                            <th style={{ padding: "0 20px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6 }}>{view.toUpperCase()}</th>
+                            <th style={{ padding: "0 20px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6 }}>MULTIPLE</th>
+                            <th style={{ padding: "0 20px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6 }}>MoM Growth</th>
                         </tr>
                     </thead>
                     <tbody>

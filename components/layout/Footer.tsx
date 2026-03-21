@@ -34,38 +34,6 @@ export function Footer() {
           Connect your Stripe and join a community of transparent founders.
         </p>
 
-        {/* Popular Categories for SEO */}
-        <div style={{ marginTop: 24, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.1em", opacity: 0.6 }}>
-            Browse by Category
-          </p>
-          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px 20px" }}>
-            {[
-              { label: "SaaS", slug: "saas" },
-              { label: "AI", slug: "artificial-intelligence" },
-              { label: "Fintech", slug: "fintech" },
-              { label: "Marketing", slug: "marketing" },
-              { label: "Developer Tools", slug: "developer-tools" },
-              { label: "E-commerce", slug: "e-commerce" },
-            ].map((cat) => (
-              <Link 
-                key={cat.slug} 
-                href={`/category/${cat.slug}`}
-                style={{ fontSize: 13, color: "var(--color-secondary)", textDecoration: "none", fontWeight: 500 }}
-                className="hover:text-[var(--color-text)] transition-colors"
-              >
-                {cat.label}
-              </Link>
-            ))}
-            <Link 
-               href="/browse"
-               style={{ fontSize: 13, color: "var(--color-accent)", textDecoration: "none", fontWeight: 600 }}
-            >
-              View all &rarr;
-            </Link>
-          </div>
-        </div>
-
         {/* cleanly separated footer links */}
         <nav className="flex flex-wrap justify-center w-full" style={{ gap: "16px 32px" }}>
           {[

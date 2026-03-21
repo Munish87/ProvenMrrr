@@ -73,8 +73,8 @@ export function HomePageLeaderboard({ initialEntries }: { initialEntries: LBEntr
             </div>
 
             {/* Table Area */}
-            <div className="lb-container" style={{ padding: 0, height: "auto", overflow: "visible" }}>
-                <table className="data-table">
+            <div className="lb-container" style={{ padding: 0, height: "auto", overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch", paddingBottom: "6px" }}>
+                <table className="data-table" style={{ minWidth: "650px" }}>
                     <thead>
                         <tr>
                             <th style={{ width: 40, textAlign: "center" }}>#</th>

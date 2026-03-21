@@ -77,7 +77,7 @@ export function RealRevenueDashboard({ latestSnap, chartData, healthScore, isStr
                     },
                     { icon: BarChart3, label: "ARR", color: "var(--color-text)", value: formatCurrency(arrValue) },
                     { icon: Zap, label: "ATR (Total)", color: "var(--color-text)", value: formatCurrency(atrValue) },
-                    { icon: Users, label: "Active Subs", color: "var(--color-text)", value: latestSnap?.customer_count ?? 0 }
+                    { icon: Users, label: "Active Customers", color: "var(--color-text)", value: latestSnap?.customer_count ?? 0 }
                 ].map((m, idx) => (
                     <div key={idx} style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 16, padding: "20px 24px", boxShadow: "var(--shadow-card)" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, color: "var(--color-secondary)", opacity: 0.5 }}>

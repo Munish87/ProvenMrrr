@@ -282,6 +282,8 @@ html[data-theme="light"] body {
 html,
 body {
   min-height: 100vh;
+  max-width: 100vw;
+  overflow-x: hidden;
   color: var(--color-text);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 15px;
@@ -778,7 +780,9 @@ html:not([data-theme='dark']) .site-logo-icon .logo-dark,
   border-radius: var(--radius-panel);
   box-shadow: var(--lb-shadow);
   animation: surfaceRise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
-  overflow: visible !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .lb-container .data-table thead tr th:first-child {
@@ -1152,6 +1156,14 @@ html:not([data-theme='dark']) .site-logo-icon .logo-dark,
 }
 
 @media (max-width: 768px) {
+  .page-container {
+    padding: 0 14px;
+  }
+
+  .page-content,
+  .main-col {
+    padding: 16px 14px 100px;
+  }
 
   .card,
   .dashboard-card {

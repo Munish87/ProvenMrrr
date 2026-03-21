@@ -10,6 +10,15 @@ export async function middleware(request: NextRequest) {
     const isProtected = PROTECTED_PATHS.some((path) => pathname.startsWith(path));
     const isAuthPath = AUTH_PATHS.includes(pathname);
 
+    // Rewrite mobile users on the root page to the dedicated mobile route
+    if (pathname === "/") {
+        const userAgent = request.headers.get("user-agent") || "";
+        const isMobile = /mobile|android|iphone|ipad|ipod/i.test(userAgent);
+        if (isMobile) {
+            return NextResponse.rewrite(new URL("/m", request.url));
+        }
+    }
+
     // Only run the Supabase auth check when actually needed.
     // For all other routes, skip the network call entirely.
     if (!isProtected && !isAuthPath) {

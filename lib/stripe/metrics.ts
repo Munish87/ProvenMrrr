@@ -115,11 +115,28 @@ export function computeMetrics(data: RawStripeData): ComputedMetrics {
 
     // ─── CUSTOMER COUNT ─────────────────────────────────────────────────────────
     const uniqueCustomers = new Set();
+    
+    // 1. Active subscribers
     for (const sub of subscriptions) {
-        if (sub.customer) {
-            uniqueCustomers.add(typeof sub.customer === "string" ? sub.customer : sub.customer.id);
+        if (sub.status === "active" || sub.status === "trialing") {
+            if (sub.customer) {
+                uniqueCustomers.add(typeof sub.customer === "string" ? sub.customer : sub.customer.id);
+            }
         }
     }
+
+    // 2. Recent one-time buyers (last 30 days)
+    for (const charge of charges) {
+        if (charge.status === "succeeded" && charge.created >= thirtyDaysAgo) {
+            if (charge.customer) {
+                uniqueCustomers.add(typeof charge.customer === "string" ? charge.customer : charge.customer.id);
+            } else if (charge.billing_details?.email) {
+                // Fallback to email if no customer ID exists
+                uniqueCustomers.add(charge.billing_details.email);
+            }
+        }
+    }
+
     const customerCount = uniqueCustomers.size;
 
     // ─── VOLATILITY: coefficient of variation of monthly revenue ────────────────

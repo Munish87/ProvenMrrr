@@ -28,11 +28,15 @@ export interface HealthScoreResult {
 export function calculateHealthScore(
     metrics: ComputedMetrics
 ): HealthScoreResult {
-    // ─── Data Presence & Confidence ───────────────────────────────────────────
+    // ─── 0. Active/Inactive Identification ──────────────────────────────────────
     const hasHistory = metrics.revenueByMonth.length >= 3;
     const hasRecentRevenue = metrics.last30DaysRevenue > 0;
     const hasCustomers = metrics.customerCount > 0;
     const hasTotalRevenue = metrics.allTimeRevenue > 0;
+    
+    // A startup is considered inactive if it has no recent revenue AND no MRR.
+    // This prevents historically active but currently dead startups from getting perfect scores.
+    const isInactive = !hasRecentRevenue && metrics.mrr === 0;
 
     // ─── 1. Revenue Stability (0–30) ────────────────────────────────────────────
     // Lower volatility = higher score. Volatility is 0–100.
@@ -40,6 +44,9 @@ export function calculateHealthScore(
     let revenueStability = 30 * (1 - metrics.volatilityScore / 100);
     if (!hasHistory || !hasTotalRevenue) {
         revenueStability = Math.min(10, revenueStability); // Cap at 10 if no history
+    }
+    if (isInactive) {
+        revenueStability = 0; // Flatlined at $0 is not stable growth
     }
 
     // ─── 2. Growth Rate (0–25) ──────────────────────────────────────────────────
@@ -52,6 +59,9 @@ export function calculateHealthScore(
     if (metrics.momGrowthRate === 0 && !hasHistory) {
         growthRate = 8;
     }
+    if (isInactive) {
+        growthRate = 0; // Stagnating at 0 is failing to grow
+    }
 
     // ─── 3. Churn Score (0–25, inverse) ─────────────────────────────────────────
     // 0% churn → 25 pts | 10%+ churn → 0 pts
@@ -62,10 +72,17 @@ export function calculateHealthScore(
     if (!hasCustomers || !hasHistory) {
         churnScore = Math.min(5, churnScore);
     }
+    if (isInactive) {
+        churnScore = 0; // Can't have good churn if dead
+    }
 
     // ─── 4. Customer Diversification (0–10) ─────────────────────────────────────
     // More customers = more resilient. Cap at 100 customers for full score.
-    const customerDiversification = Math.min(10, (metrics.customerCount / 100) * 10);
+    let customerDiversification = Math.min(10, (metrics.customerCount / 100) * 10);
+    
+    if (isInactive) {
+        customerDiversification = 0;
+    }
 
     // ─── 5. Refund Score (0–10, inverse) ────────────────────────────────────────
     // 0% refunds → 10 pts | 15%+ refunds → 0 pts

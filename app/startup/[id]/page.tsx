@@ -436,24 +436,24 @@ export default async function StartupProfilePage({ params }: Props) {
                 )}
 
                 {/* Profile Card */}
-                <div className="card" style={{ padding: "48px", marginBottom: "40px" }}>
+                <div className="card" style={{ padding: "clamp(20px, 5vw, 48px)", marginBottom: "40px" }}>
                     {/* Header row */}
-                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 32 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 32 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0, flex: 1 }}>
-                            <div style={{ width: 88, height: 88, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <div style={{ width: "clamp(56px, 12vw, 88px)", height: "clamp(56px, 12vw, 88px)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                 {startup.logo_url && !startup.is_anonymous ? (
-                                    <div style={{ width: 88, height: 88, borderRadius: "50%", overflow: "hidden", flexShrink: 0, position: "relative", border: "1px solid var(--startup-card-logo-border)", boxShadow: "var(--startup-card-logo-shadow)", background: "var(--startup-card-logo-bg)" }}>
+                                    <div style={{ width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden", position: "relative", border: "1px solid var(--startup-card-logo-border)", boxShadow: "var(--startup-card-logo-shadow)", background: "var(--startup-card-logo-bg)" }}>
                                         <img src={startup.logo_url} alt={`${startup.name} logo`} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                                     </div>
                                 ) : (
-                                    <div style={{ width: 88, height: 88, fontSize: 38, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, letterSpacing: "-0.04em", filter: startup.is_anonymous ? "blur(5px)" : "none", background: "var(--startup-card-logo-bg)", color: "var(--color-text)", border: "1px solid var(--startup-card-logo-border)", boxShadow: "var(--startup-card-logo-shadow)" }}>
+                                    <div style={{ width: "100%", height: "100%", fontSize: "clamp(24px, 5vw, 38px)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, letterSpacing: "-0.04em", filter: startup.is_anonymous ? "blur(5px)" : "none", background: "var(--startup-card-logo-bg)", color: "var(--color-text)", border: "1px solid var(--startup-card-logo-border)", boxShadow: "var(--startup-card-logo-shadow)" }}>
                                         {startup.name.charAt(0)}
                                     </div>
                                 )}
                             </div>
                             <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
-                                    <h1 style={{ fontSize: 32, fontWeight: 700, color: "var(--color-text)", letterSpacing: "-0.02em", filter: startup.is_anonymous ? "blur(5px)" : "none", margin: 0 }}>{startup.name}</h1>
+                                <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 4 }}>
+                                    <h1 style={{ fontSize: "clamp(24px, 6vw, 32px)", fontWeight: 700, color: "var(--color-text)", letterSpacing: "-0.02em", filter: startup.is_anonymous ? "blur(5px)" : "none", margin: 0 }}>{startup.name}</h1>
                                     {(startup.is_verified && startup.claimed_by_user_id) && (
                                         <div
                                             style={{
@@ -491,9 +491,9 @@ export default async function StartupProfilePage({ params }: Props) {
                     </div>
 
                     {/* Stat cards */}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: 14, marginBottom: 40 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14, marginBottom: 40 }}>
                         {[
-                            { label: "MRR", value: formatCurrency(latestSnap?.mrr ?? 0), sub: `${latestSnap?.customer_count ?? 0} active subs` },
+                            { label: "MRR", value: formatCurrency(latestSnap?.mrr ?? 0), sub: `${latestSnap?.customer_count ?? 0} active customers` },
                             { label: "ARR", value: formatCurrency((latestSnap?.mrr || 0) * 12), sub: "Annual Recurring" },
                             { label: "ATR", value: formatCurrency(latestSnap?.all_time_revenue || 0), sub: "All Time Revenue" },
                              { label: "Health Score", value: `${finalHealthScore?.score ?? 0}/100`, sub: `${finalHealthScore ? (finalHealthScore.risk_level.charAt(0).toUpperCase() + finalHealthScore.risk_level.slice(1)) : "Unrated"} risk` },
@@ -606,7 +606,7 @@ export default async function StartupProfilePage({ params }: Props) {
                     {/* Founder Card */}
                     <div style={{ marginBottom: 48 }}>
                         <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--color-text)", marginBottom: 24, letterSpacing: "-0.01em" }}>Founder</h2>
-                        <div style={{ padding: 28, display: "flex", alignItems: "center", gap: 24, background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 16, boxShadow: "var(--shadow-card)" }}>
+                        <div style={{ padding: "clamp(20px, 4vw, 28px)", display: "flex", alignItems: "center", flexWrap: "wrap", gap: 24, background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 16, boxShadow: "var(--shadow-card)" }}>
                             {ownerProfile?.avatar_url ? (
                                 <img src={ownerProfile.avatar_url} alt="Profile" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }} />
                             ) : resolvedXHandle && xData?.avatar_url ? (
@@ -661,7 +661,7 @@ export default async function StartupProfilePage({ params }: Props) {
                             {insights && (
                                 <div style={{ 
                                     display: "grid", 
-                                    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", 
+                                    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", 
                                     gap: "32px", 
                                     marginBottom: 32 
                                 }}>
