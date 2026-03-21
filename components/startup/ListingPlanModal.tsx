@@ -15,6 +15,25 @@ interface ListingPlanModalProps {
 export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startupName }: ListingPlanModalProps) {
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [currency, setCurrency] = useState("usd");
+    const [priceDisplay, setPriceDisplay] = useState("$1");
+
+    useEffect(() => {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (tz.includes("Asia/Calcutta") || tz.includes("Asia/Kolkata") || tz.includes("India")) {
+            setCurrency("inr");
+            setPriceDisplay("₹100");
+        } else if (tz.includes("Canada")) {
+            setCurrency("cad");
+            setPriceDisplay("$1.40");
+        } else if (tz.includes("Europe") || tz.includes("Paris") || tz.includes("Berlin") || tz.includes("London")) {
+            setCurrency(tz.includes("London") ? "gbp" : "eur");
+            setPriceDisplay(tz.includes("London") ? "£0.80" : "€0.95");
+        } else {
+            setCurrency("usd");
+            setPriceDisplay("$1.00");
+        }
+    }, [isOpen]);
 
     useEffect(() => {
         if (!isOpen) {
@@ -39,7 +58,7 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
             const res = await fetch("/api/stripe/checkout", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ startupId }),
+                body: JSON.stringify({ startupId, currency }),
                 credentials: "include",
             });
             const data = await res.json();
@@ -152,7 +171,7 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
                         }}>
                             <p style={{ fontSize: 11, fontWeight: 800, color: "#818cf8", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 8 }}>ProvenMRR Pro Listing</p>
                             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 6 }}>
-                                <span style={{ fontSize: 48, fontWeight: 900, color: "var(--color-text)", letterSpacing: "-0.04em" }}>₹100</span>
+                                <span style={{ fontSize: 48, fontWeight: 900, color: "var(--color-text)", letterSpacing: "-0.04em" }}>{priceDisplay}</span>
                                 <span style={{ fontSize: 16, fontWeight: 600, color: "var(--color-secondary)" }}>one-time</span>
                             </div>
                             <p style={{ fontSize: 12, color: "var(--color-secondary)", margin: "8px 0 0", opacity: 0.7 }}>Secure payment via Stripe</p>
@@ -195,7 +214,7 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
                             ) : (
                                 <>
                                     <ExternalLink size={18} />
-                                    Pay ₹100 &amp; List Startup
+                                    Pay {priceDisplay} &amp; List Startup
                                 </>
                             )}
                         </button>

@@ -19,10 +19,29 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { startupId } = await req.json();
+        const { startupId, currency: requestedCurrency = "usd" } = await req.json();
 
         if (!startupId) {
             return NextResponse.json({ error: "Startup ID is required" }, { status: 400 });
+        }
+
+        // Pricing logic: Match frontend detection
+        const currency = (requestedCurrency as string).toLowerCase();
+        let unitAmount = 100; // Default $1.00 (100 cents)
+        let stripeCurrency = "usd";
+
+        if (currency === "inr") {
+            unitAmount = 10000; // ₹100.00 (10000 paise)
+            stripeCurrency = "inr";
+        } else if (currency === "cad") {
+            unitAmount = 140; // $1.40 CAD
+            stripeCurrency = "cad";
+        } else if (currency === "eur") {
+            unitAmount = 95; // €0.95
+            stripeCurrency = "eur";
+        } else if (currency === "gbp") {
+            unitAmount = 80; // £0.80
+            stripeCurrency = "gbp";
         }
 
         // Verify ownership
@@ -51,13 +70,13 @@ export async function POST(req: NextRequest) {
             line_items: [
                 {
                     price_data: {
-                        currency: "inr",
+                        currency: stripeCurrency,
                         product_data: {
                             name: `ProvenMRR Listing Fee`,
                             description: `List "${startupData.name}" in the marketplace for sale. Priority placement for 30 days.`,
                             images: [],
                         },
-                        unit_amount: 10000, // ₹100.00
+                        unit_amount: unitAmount,
                     },
                     quantity: 1,
                 },

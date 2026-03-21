@@ -45,7 +45,7 @@ export function StartupCard({
                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{ filter: startup.is_anonymous ? "blur(5px)" : "none" }}>
                             {startup.name.charAt(0).toUpperCase()}
                         </div>
- 
+
                         <div className="min-w-0">
                             <h3 className="font-semibold text-zinc-900 truncate" style={{ filter: startup.is_anonymous ? "blur(5px)" : "none" }}>{startup.name}</h3>
                             <p className="text-xs text-zinc-500 truncate mt-0.5">
@@ -59,10 +59,8 @@ export function StartupCard({
 
                 <div className="mt-4 grid grid-cols-3 gap-3">
                     <div>
-                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">MRR</p>
-                        <p className="text-sm font-bold text-zinc-900 mt-0.5">
-                            {formatCurrency(mrr)}
-                        </p>
+                        <p className="metric-label" style={{ marginBottom: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", color: "var(--color-secondary)", textTransform: "uppercase" }}>MRR</p>
+                        <p style={{ fontWeight: 800, fontSize: 18, color: "var(--color-text)", margin: 0 }}>{startup.is_verified || mrr > 0 ? formatCurrency(mrr) : "—"}</p>
                     </div>
                     <div>
                         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Growth</p>

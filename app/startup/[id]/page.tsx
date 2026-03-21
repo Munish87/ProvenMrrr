@@ -61,17 +61,17 @@ export async function generateMetadata({ params }: Props) {
     if (!data) return { title: "Startup Not Found | ProvenMRR" };
 
     const name = data.is_anonymous ? "Anonymous Startup" : data.name;
-    const revStr = data.monthly_revenue && data.monthly_revenue > 0 
-        ? ` with $${Number(data.monthly_revenue).toLocaleString()} monthly revenue` 
+    const revStr = data.monthly_revenue && data.monthly_revenue > 0
+        ? ` with $${Number(data.monthly_revenue).toLocaleString()} monthly revenue`
         : "";
-    
+
     const title = `${name} — Verified Revenue Data | ProvenMRR`;
-    const description = data.description 
+    const description = data.description
         ? `${data.description}${revStr}. View verified growth and MRR metrics for this ${data.category || 'startup'} on ProvenMRR.`
         : `Explore verified revenue metrics and growth data for ${name}${revStr}. Verified via Stripe on ProvenMRR.`;
 
-    return { 
-        title, 
+    return {
+        title,
         description,
         alternates: {
             canonical: `https://provenmrr.com/startup/${data.slug || id}`,
@@ -107,7 +107,7 @@ export default async function StartupProfilePage({ params }: Props) {
     }
 
     const adminSupabase = createAdminClient();
-    
+
     // 2. Fetch secondary data in parallel (no saleStatusMap here — derived below from startup row)
     const [
         { data: healthScore },
@@ -143,7 +143,7 @@ export default async function StartupProfilePage({ params }: Props) {
                     console.log(`[ProfileEnrichment] Enriched ${startup.slug}`);
                 }
             })
-            .catch(() => {});
+            .catch(() => { });
     }
 
     // Pass pre-fetched override to avoid a redundant DB round-trip in getSaleStatusMap
@@ -323,7 +323,7 @@ export default async function StartupProfilePage({ params }: Props) {
         .neq("id", startup.id)
         .limit(6);
 
-    const { data: rawRelated } = startup.is_listed_for_sale 
+    const { data: rawRelated } = startup.is_listed_for_sale
         ? await relatedQuery.eq("is_listed_for_sale", true)
         : await relatedQuery.eq("category", startup.category || "Software");
 
@@ -427,11 +427,11 @@ export default async function StartupProfilePage({ params }: Props) {
                 {/* For Sale Banner (if applicable) */}
                 {startup.is_listed_for_sale && (
                     <SaleBannerWrapper
-                        askingPrice={startup.asking_price && startup.asking_price > 0 ? formatCurrency(startup.asking_price, "USD") : null}
+                        askingPrice={startup.asking_price}
                         startupId={startup.id}
                         startupName={startup.name}
                         revMultiple={revMultiple}
-                        profitMultiple={profitMultiple}
+                        profitMultiple={null}
                     />
                 )}
 
@@ -496,7 +496,7 @@ export default async function StartupProfilePage({ params }: Props) {
                             { label: "MRR", value: formatCurrency(latestSnap?.mrr ?? 0), sub: `${latestSnap?.customer_count ?? 0} active customers` },
                             { label: "ARR", value: formatCurrency((latestSnap?.mrr || 0) * 12), sub: "Annual Recurring" },
                             { label: "ATR", value: formatCurrency(latestSnap?.all_time_revenue || 0), sub: "All Time Revenue" },
-                             { label: "Health Score", value: `${finalHealthScore?.score ?? 0}/100`, sub: `${finalHealthScore ? (finalHealthScore.risk_level.charAt(0).toUpperCase() + finalHealthScore.risk_level.slice(1)) : "Unrated"} risk` },
+                            { label: "Health Score", value: `${finalHealthScore?.score ?? 0}/100`, sub: `${finalHealthScore ? (finalHealthScore.risk_level.charAt(0).toUpperCase() + finalHealthScore.risk_level.slice(1)) : "Unrated"} risk` },
                             {
                                 label: "Founded",
                                 value: (
@@ -527,8 +527,8 @@ export default async function StartupProfilePage({ params }: Props) {
                                         {xData?.avatar_url && (
                                             <img src={xData.avatar_url} alt="Profile" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                                         )}
-                                        <span style={{ 
-                                            color: "var(--color-text)", 
+                                        <span style={{
+                                            color: "var(--color-text)",
                                             fontWeight: 700,
                                             overflow: "hidden",
                                             textOverflow: "ellipsis",
@@ -539,7 +539,7 @@ export default async function StartupProfilePage({ params }: Props) {
                                         </span>
                                     </a>
                                 ) : (
-                                    <span style={{ 
+                                    <span style={{
                                         display: "block",
                                         overflow: "hidden",
                                         textOverflow: "ellipsis",
@@ -570,12 +570,12 @@ export default async function StartupProfilePage({ params }: Props) {
                                 }}
                             >
                                 <p className="metric-label" style={{ marginBottom: 8, fontSize: "11px", letterSpacing: "0.08em", color: "var(--color-secondary)", opacity: 0.72 }}>{label}</p>
-                                <div style={{ 
-                                    fontSize: 28, 
-                                    fontWeight: 800, 
-                                    color: "var(--color-text)", 
-                                    letterSpacing: "-0.03em", 
-                                    marginBottom: 8, 
+                                <div style={{
+                                    fontSize: 28,
+                                    fontWeight: 800,
+                                    color: "var(--color-text)",
+                                    letterSpacing: "-0.03em",
+                                    marginBottom: 8,
                                     lineHeight: 1.05,
                                     overflow: "hidden",
                                     textOverflow: "ellipsis",
@@ -591,10 +591,10 @@ export default async function StartupProfilePage({ params }: Props) {
 
                     {/* Revenue Dashboard */}
                     {latestSnap ? (
-                         <RealRevenueDashboard
+                        <RealRevenueDashboard
                             latestSnap={latestSnap}
                             chartData={chartData}
-                             healthScore={finalHealthScore}
+                            healthScore={finalHealthScore}
                             isStripeConnected={!!conn && startup.is_verified}
                         />
                     ) : (
@@ -649,30 +649,30 @@ export default async function StartupProfilePage({ params }: Props) {
                     {/* Insights & Tags Section */}
                     {((insights && Object.keys(insights).length > 0) || (startup.tags && startup.tags.length > 0)) && (
                         <div className="card" style={{ padding: "40px" }}>
-                            <h2 style={{ 
-                                fontSize: "18px", 
-                                fontWeight: 600, 
-                                color: "var(--color-text)", 
-                                marginBottom: 32 
+                            <h2 style={{
+                                fontSize: "18px",
+                                fontWeight: 600,
+                                color: "var(--color-text)",
+                                marginBottom: 32
                             }}>
                                 Startup insights
                             </h2>
 
                             {insights && (
-                                <div style={{ 
-                                    display: "grid", 
-                                    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", 
-                                    gap: "32px", 
-                                    marginBottom: 32 
+                                <div style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                                    gap: "32px",
+                                    marginBottom: 32
                                 }}>
                                     {insights.value_proposition && (
                                         <div style={{ display: "flex", gap: "20px" }}>
-                                            <div style={{ 
-                                                width: 48, 
-                                                height: 48, 
-                                                borderRadius: "12px", 
-                                                display: "flex", 
-                                                alignItems: "center", 
+                                            <div style={{
+                                                width: 48,
+                                                height: 48,
+                                                borderRadius: "12px",
+                                                display: "flex",
+                                                alignItems: "center",
                                                 justifyContent: "center",
                                                 flexShrink: 0,
                                                 background: "rgba(99, 102, 241, 0.1)"
@@ -687,12 +687,12 @@ export default async function StartupProfilePage({ params }: Props) {
                                     )}
                                     {insights.problem_solved && (
                                         <div style={{ display: "flex", gap: "20px" }}>
-                                            <div style={{ 
-                                                width: 48, 
-                                                height: 48, 
-                                                borderRadius: "12px", 
-                                                display: "flex", 
-                                                alignItems: "center", 
+                                            <div style={{
+                                                width: 48,
+                                                height: 48,
+                                                borderRadius: "12px",
+                                                display: "flex",
+                                                alignItems: "center",
                                                 justifyContent: "center",
                                                 flexShrink: 0,
                                                 background: "rgba(99, 102, 241, 0.1)"
@@ -707,12 +707,12 @@ export default async function StartupProfilePage({ params }: Props) {
                                     )}
                                     {insights.pricing && (
                                         <div style={{ display: "flex", gap: "20px" }}>
-                                            <div style={{ 
-                                                width: 48, 
-                                                height: 48, 
-                                                borderRadius: "12px", 
-                                                display: "flex", 
-                                                alignItems: "center", 
+                                            <div style={{
+                                                width: 48,
+                                                height: 48,
+                                                borderRadius: "12px",
+                                                display: "flex",
+                                                alignItems: "center",
                                                 justifyContent: "center",
                                                 flexShrink: 0,
                                                 background: "rgba(99, 102, 241, 0.1)"
@@ -727,12 +727,12 @@ export default async function StartupProfilePage({ params }: Props) {
                                     )}
                                     {insights.business_model && (
                                         <div style={{ display: "flex", gap: "20px" }}>
-                                            <div style={{ 
-                                                width: 52, 
-                                                height: 52, 
-                                                borderRadius: "14px", 
-                                                display: "flex", 
-                                                alignItems: "center", 
+                                            <div style={{
+                                                width: 52,
+                                                height: 52,
+                                                borderRadius: "14px",
+                                                display: "flex",
+                                                alignItems: "center",
                                                 justifyContent: "center",
                                                 flexShrink: 0,
                                                 background: "var(--color-surface)",
@@ -751,10 +751,10 @@ export default async function StartupProfilePage({ params }: Props) {
                             )}
 
                             {((startup.tags && startup.tags.length > 0) || (insights?.tech_stack && insights.tech_stack.length > 0)) && (
-                                <div style={{ 
-                                    paddingTop: 32, 
-                                    borderTop: "1px solid rgba(224,232,239,0.1)", 
-                                    display: "flex", 
+                                <div style={{
+                                    paddingTop: 32,
+                                    borderTop: "1px solid rgba(224,232,239,0.1)",
+                                    display: "flex",
                                     flexDirection: "column",
                                     gap: 24
                                 }}>
@@ -763,22 +763,22 @@ export default async function StartupProfilePage({ params }: Props) {
                                         const techFromTags = startup.tags || [];
                                         const techStack = [...new Set([...techFromInsights, ...techFromTags])]
                                             .filter((t: string) => t && t !== "[object Object]");
-                                        
+
                                         // Use pre-categorized stacks if available, otherwise filter
                                         const insightFrontend = insights?.frontend_stack || [];
                                         const insightBackend = insights?.backend_stack || [];
-                                        
+
                                         const frontendTechs = [...new Set([
                                             ...insightFrontend,
                                             ...techStack.filter((t: string) => TECH_STACK_OPTIONS.find((o: any) => o.value === t)?.category === 'frontend')
                                         ])];
-                                        
+
                                         const backendTechs = [...new Set([
                                             ...insightBackend,
                                             ...techStack.filter((t: string) => TECH_STACK_OPTIONS.find((o: any) => o.value === t)?.category === 'backend')
                                         ])];
-                                        
-                                        const otherTags = techStack.filter((t: string) => 
+
+                                        const otherTags = techStack.filter((t: string) =>
                                             !frontendTechs.includes(t) && !backendTechs.includes(t)
                                         );
 
@@ -843,7 +843,7 @@ export default async function StartupProfilePage({ params }: Props) {
                                                         </div>
                                                     </div>
                                                 )}
-                                                
+
                                                 {otherTags.length > 0 && (
                                                     <div>
                                                         <h3 style={{ fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 12, opacity: 0.7 }}>Tags</h3>
