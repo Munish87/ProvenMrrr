@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
                             description: `List "${startupData.name}" in the marketplace for sale. Priority placement for 30 days.`,
                             images: [],
                         },
-                        unit_amount: 50, // $0.50
+                        unit_amount: 100, // $1.00
                     },
                     quantity: 1,
                 },
