@@ -51,13 +51,13 @@ export async function POST(req: NextRequest) {
             line_items: [
                 {
                     price_data: {
-                        currency: "usd",
+                        currency: "inr",
                         product_data: {
                             name: `ProvenMRR Listing Fee`,
                             description: `List "${startupData.name}" in the marketplace for sale. Priority placement for 30 days.`,
                             images: [],
                         },
-                        unit_amount: 100, // $1.00
+                        unit_amount: 10000, // ₹100.00
                     },
                     quantity: 1,
                 },

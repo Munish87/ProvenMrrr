@@ -152,7 +152,7 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
                         }}>
                             <p style={{ fontSize: 11, fontWeight: 800, color: "#818cf8", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 8 }}>ProvenMRR Pro Listing</p>
                             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 6 }}>
-                                <span style={{ fontSize: 48, fontWeight: 900, color: "var(--color-text)", letterSpacing: "-0.04em" }}>$1.00</span>
+                                <span style={{ fontSize: 48, fontWeight: 900, color: "var(--color-text)", letterSpacing: "-0.04em" }}>₹100</span>
                                 <span style={{ fontSize: 16, fontWeight: 600, color: "var(--color-secondary)" }}>one-time</span>
                             </div>
                             <p style={{ fontSize: 12, color: "var(--color-secondary)", margin: "8px 0 0", opacity: 0.7 }}>Secure payment via Stripe</p>
@@ -195,7 +195,7 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
                             ) : (
                                 <>
                                     <ExternalLink size={18} />
-                                    Pay $1.00 &amp; List Startup
+                                    Pay ₹100 &amp; List Startup
                                 </>
                             )}
                         </button>
