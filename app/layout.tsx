@@ -98,6 +98,20 @@ export default function RootLayout({
               "try{var t=localStorage.getItem('provenmrr-theme');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t;}}catch(e){}",
           }}
         />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "ProvenMRR",
+              "url": "https://provenmrr.com",
+              "logo": "https://provenmrr.com/icon.png",
+              "sameAs": ["https://x.com/provenmrr"],
+              "description": "Verified startup revenue database and marketplace for founders and investors.",
+            }),
+          }}
+        />
       </head>
       <body className="antialiased" suppressHydrationWarning style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         <div

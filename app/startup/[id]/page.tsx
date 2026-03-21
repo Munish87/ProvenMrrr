@@ -365,11 +365,40 @@ export default async function StartupProfilePage({ params }: Props) {
         "description": startup.description,
         "applicationCategory": startup.category || "BusinessApplication",
         "operatingSystem": "Web",
+        "applicationSubCategory": startup.category,
         "offers": startup.is_listed_for_sale ? {
             "@type": "Offer",
             "price": startup.asking_price,
-            "priceCurrency": "USD"
-        } : undefined
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock",
+            "url": `https://provenmrr.com/startup/${startup.slug || startup.id}`
+        } : undefined,
+        "image": startup.logo_url || "https://provenmrr.com/icon.png",
+    };
+
+    const breadcrumbLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://provenmrr.com"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Browse Startups",
+                "item": "https://provenmrr.com/browse"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": startup.name,
+                "item": `https://provenmrr.com/startup/${startup.slug || startup.id}`
+            }
+        ]
     };
 
     return (
@@ -377,6 +406,10 @@ export default async function StartupProfilePage({ params }: Props) {
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
             />
             <Navbar user={user} />
 

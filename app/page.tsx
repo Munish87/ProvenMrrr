@@ -9,8 +9,8 @@ import { Navbar } from "@/components/layout/Navbar";
 import { getSaleStatusMap } from "@/lib/startup-sale-status";
 
 export const metadata = {
-  title: "ProvenMRR - The database of verified startup revenues",
-  description: "Connect Stripe. Verify MRR. Get an AI Health Score.",
+  title: "ProvenMRR - The #1 Verified Startup Revenue Database & Marketplace",
+  description: "Browse verified MRR data from real startups. Connect Stripe, verify your revenue, and securely connect with buyers and investors on the most trusted SaaS marketplace.",
 };
 
 // Revalidate the homepage every 10 minutes to serve it instantly from cache
