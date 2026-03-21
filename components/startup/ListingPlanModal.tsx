@@ -20,7 +20,12 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
 
     useEffect(() => {
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        if (tz.includes("Asia/Calcutta") || tz.includes("Asia/Kolkata") || tz.includes("India")) {
+        const offset = new Date().getTimezoneOffset();
+        const locale = typeof window !== "undefined" ? window.navigator.language : "";
+        
+        console.log(`[Currency Detection] TZ: ${tz}, Offset: ${offset}, Locale: ${locale}`);
+
+        if (tz.includes("Asia/Calcutta") || tz.includes("Asia/Kolkata") || tz.includes("India") || offset === -330 || locale === "en-IN" || locale === "hi-IN") {
             setCurrency("inr");
             setPriceDisplay("₹100");
         } else if (tz.includes("Canada")) {
@@ -76,7 +81,7 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
             setError(err.message || "Could not initialize secure checkout. Please try again.");
             setIsProcessing(false);
         }
-    }, [startupId]);
+    }, [startupId, currency]);
 
     if (!isOpen) return null;
 

@@ -22,7 +22,12 @@ export function ListingToggle({ id, name, initialValue, initialHasPaidListing, o
 
     useEffect(() => {
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        if (tz.includes("Asia/Calcutta") || tz.includes("Asia/Kolkata") || tz.includes("India")) {
+        const offset = new Date().getTimezoneOffset();
+        const locale = typeof window !== "undefined" ? window.navigator.language : "";
+
+        console.log(`[Currency Detection Toggle] TZ: ${tz}, Offset: ${offset}, Locale: ${locale}`);
+
+        if (tz.includes("Asia/Calcutta") || tz.includes("Asia/Kolkata") || tz.includes("India") || offset === -330 || locale === "en-IN" || locale === "hi-IN") {
             setPriceDisplay("₹100");
         } else if (tz.includes("Canada")) {
             setPriceDisplay("$1.40");

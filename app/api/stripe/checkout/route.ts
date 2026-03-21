@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
         }
 
         const { startupId, currency: requestedCurrency = "usd" } = await req.json();
+        console.log(`[Stripe Checkout] Requested currency: ${requestedCurrency} for startup: ${startupId}`);
 
         if (!startupId) {
             return NextResponse.json({ error: "Startup ID is required" }, { status: 400 });
@@ -67,6 +68,8 @@ export async function POST(req: NextRequest) {
 
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
+            billing_address_collection: "required",
+            customer_email: user.email ?? undefined,
             line_items: [
                 {
                     price_data: {
@@ -82,23 +85,17 @@ export async function POST(req: NextRequest) {
                 },
             ],
             mode: "payment",
-            success_url: `${appUrl}/dashboard/startups?id=${startupId}&payment=success&session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${appUrl}/dashboard/startups?id=${startupId}&payment=cancel`,
-            customer_email: user.email,
+            success_url: `${appUrl}/startup/${startupId}?payment=success&id=${startupId}`,
+            cancel_url: `${appUrl}/dashboard/startups?id=${startupId}`,
             metadata: {
-                startup_id: startupId,
-                user_id: user.id,
+                startupId: startupId,
                 type: "listing_fee",
             },
         });
 
-        return NextResponse.json({ url: session.url, sessionId: session.id });
+        return NextResponse.json({ url: session.url });
     } catch (err: any) {
-        console.error("[Stripe Checkout Error]:", err?.message, err?.code, err?.type);
-        return NextResponse.json({
-            error: err.message,
-            code: err?.code,
-            type: err?.type,
-        }, { status: 500 });
+        console.error("[Stripe Checkout Error]:", err);
+        return NextResponse.json({ error: err.message || "A processing error occurred" }, { status: 500 });
     }
 }
