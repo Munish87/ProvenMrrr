@@ -16,8 +16,8 @@ export function Navbar({ user }: NavbarProps) {
       <div className="site-header-inner">
         <Link href="/" className="site-logo">
           <div className="site-logo-icon">
-            <img src="/logo-black.png" alt="ProvenMRR" className="logo-dark" />
-            <img src="/logo-white.png" alt="ProvenMRR" className="logo-light" />
+            <img src="/logo-black.png" alt="ProvenMRR" className="logo-dark" fetchPriority="high" />
+            <img src="/logo-white.png" alt="ProvenMRR" className="logo-light" fetchPriority="high" />
           </div>
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
             <span>ProvenMRR</span>

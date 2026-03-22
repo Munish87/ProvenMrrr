@@ -99,11 +99,11 @@ export async function POST(req: NextRequest) {
         const errorMessage = err?.message || "Unknown error";
         const errorStack = err?.stack || "";
         const errorDetail = JSON.stringify(err, null, 2);
-        
+
         console.error("[Stripe Checkout Error]:", errorMessage, errorDetail);
-        
+
         // Return detailed error for debugging temporarily
-        return NextResponse.json({ 
+        return NextResponse.json({
             error: errorMessage,
             details: errorDetail,
             stack: errorStack

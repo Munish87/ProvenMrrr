@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { ThemeController } from "@/components/theme/ThemeController";
-import { GoogleAnalytics } from "@next/third-parties/google";
+import { DeferredAnalytics } from "@/components/providers/DeferredAnalytics";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -133,7 +133,7 @@ export default function RootLayout({
           <FloatingNav />
         </AuthProvider>
         <ThemeController />
-        {gaId && <GoogleAnalytics gaId={gaId} />}
+        {gaId && <DeferredAnalytics gaId={gaId} />}
         <Analytics />
         <SpeedInsights />
       </body>

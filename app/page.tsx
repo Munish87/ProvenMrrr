@@ -3,8 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { Search } from "lucide-react";
 import { FrictionlessAddWrapper } from "@/components/startup/FrictionlessAddWrapper";
 import { HomePageFeed } from "@/components/startup/HomePageFeed";
+import { Suspense } from "react";
+import dynamic from "next/dynamic";
 import { HomePageLeaderboard } from "@/components/startup/HomePageLeaderboard";
-import { CategoryBrowser } from "@/components/startup/CategoryBrowser";
+const CategoryBrowser = dynamic(() => import("@/components/startup/CategoryBrowser").then(mod => mod.CategoryBrowser));
 import { HomePageSearch } from "@/components/startup/HomePageSearch";
 import { Navbar } from "@/components/layout/Navbar";
 import { getSaleStatusMap } from "@/lib/startup-sale-status";
@@ -21,102 +23,10 @@ export default async function HomePage() {
   const supabase = await createClient();
   const baseSelect = "id, name, slug, logo_url, category, description, x_handle, owner_id, claimed_by_user_id, is_listed_for_sale, asking_price, is_verified, is_anonymous, verified, created_at, sale_status_override, monthly_revenue, growth_rate, revenue_30d";
 
-  // 1. Fetch targeted sections and user in parallel
-  const [
-    { data: { user } },
-    { data: recentlyListedRaw },
-    { data: bestDealsRaw },
-    { data: fastestGrowingRaw },
-    { data: leaderboardRaw }
-  ] = await Promise.all([
-    supabase.auth.getUser(),
-    // Recently listed
-    supabase.from("startups").select(baseSelect).order("created_at", { ascending: false }).limit(3),
-    // Best deals (listed for sale)
-    supabase.from("startups").select(baseSelect).filter("is_listed_for_sale", "eq", true).order("created_at", { ascending: false }).limit(3),
-    // Fastest growing (verified) - using growth_rate column
-    supabase.from("startups").select(baseSelect).filter("is_verified", "eq", true).order("growth_rate", { ascending: false }).limit(3),
-    // Leaderboard (top verified MRR)
-    supabase.from("startups").select(baseSelect).filter("is_verified", "eq", true).order("monthly_revenue", { ascending: false }).limit(10)
-  ]);
+  // 1. Fetch user for Navbar (non-blocking for UI below)
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const allStartupsForStatus = [
-    ...(recentlyListedRaw || []),
-    ...(bestDealsRaw || []),
-    ...(fastestGrowingRaw || []),
-    ...(leaderboardRaw || [])
-  ];
 
-  // 2. Build overrides from already-fetched data and check offers only
-  const startupIds = Array.from(new Set(allStartupsForStatus.map((s: any) => s.id)));
-  const overridesMap: Record<string, string | null> = {};
-  for (const s of allStartupsForStatus) {
-    overridesMap[(s as any).id] = (s as any).sale_status_override ?? null;
-  }
-  const saleStatusMap = await getSaleStatusMap(startupIds, overridesMap);
-
-  const founderIds = Array.from(
-    new Set(
-      allStartupsForStatus
-        .flatMap((s: any) => [s.claimed_by_user_id, s.owner_id])
-        .filter(Boolean)
-    )
-  );
-
-  // 3. Fetch only required founder profiles
-  const founderMap = new Map();
-  if (founderIds.length > 0) {
-    const { data: founderProfiles } = await supabase
-      .from("users")
-      .select("id, name, x_handle, avatar_url")
-      .in("id", founderIds);
-
-    for (const p of founderProfiles || []) {
-      founderMap.set(p.id, p);
-    }
-  }
-
-  const prepareStartup = (s: any) => ({
-    ...s,
-    sale_status: s.sale_status_override === "sold" ? "sold" : (s.is_listed_for_sale ? (saleStatusMap.get(s.id) ?? "sale") : null),
-    snap: {
-      mrr: s.monthly_revenue || 0,
-      arr: (s.monthly_revenue || 0) * 12 || (s.revenue_30d || 0) * 12,
-      growth_rate: s.growth_rate || 0,
-      all_time_revenue: s.revenue_30d || 0,
-      snapshot_date: s.created_at
-    }
-  });
-
-  const recentlyListed = (recentlyListedRaw || []).map(prepareStartup);
-  const bestDeals = (bestDealsRaw || []).map(prepareStartup);
-  const fastestGrowing = (fastestGrowingRaw || []).map(prepareStartup);
-
-  const discoverySections = [
-    { title: "Recently listed", data: recentlyListed, link: "/browse?filter=recent" },
-    { title: "Best deals this week", data: bestDeals, link: "/browse?filter=deals" },
-    { title: "Fastest growing", data: fastestGrowing, link: "/browse?filter=growth" },
-  ];
-
-  const lbEntries = (leaderboardRaw || []).map((s) => {
-    const p = prepareStartup(s);
-    const founderProfile = founderMap.get(s.claimed_by_user_id || s.owner_id);
-    return {
-      startup_id: s.id,
-      startups: {
-        ...p,
-        founder_name: founderProfile?.name || null,
-        founder_handle: founderProfile?.x_handle || s.x_handle || null,
-        founder_avatar_url: founderProfile?.avatar_url || null,
-      },
-      mrr: p.snap.mrr,
-      arr: p.snap.arr,
-      growth_rate: p.snap.growth_rate,
-      all_time: p.snap.all_time_revenue,
-      is_anonymous: s.is_anonymous,
-      asking_price: s.asking_price
-    };
-  });
 
   return (
     <>
@@ -212,48 +122,155 @@ export default async function HomePage() {
       </section>
 
       <div className="page-content" style={{ paddingTop: 0, marginTop: "-4px" }}>
-        {discoverySections.map((section) => (
-          <section key={section.title} style={{ marginTop: "12px", marginBottom: "18px" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: "12px",
-                padding: "0 4px",
-              }}
-            >
-              <h2 style={{ fontSize: "20px", fontWeight: 700, color: "var(--color-text)", letterSpacing: "-0.02em" }}>
-                {section.title}
-              </h2>
-              <Link
-                href={section.link}
-                className="glass-pill"
-                style={{ fontSize: "13px", color: "var(--color-secondary)", fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center", gap: "4px", padding: "8px 14px" }}
-              >
-                View all &rarr;
-              </Link>
-            </div>
-            <HomePageFeed
-              sectionTitle={section.title}
-              initialData={section.data}
-            />
-          </section>
-        ))}
-
-        <section style={{ marginTop: "56px" }}>
-          <div style={{ marginBottom: "20px", padding: "0 4px" }}>
-            <h2 style={{ fontSize: "20px", fontWeight: 700, color: "var(--color-text)", letterSpacing: "-0.02em" }}>
-              Verified Leaderboard
-            </h2>
+        <Suspense fallback={
+          <div style={{ padding: "60px 0", textAlign: "center", color: "var(--color-secondary)" }}>
+            <div className="spinner" style={{ margin: "0 auto 16px" }}></div>
+            <p>Loading market data...</p>
           </div>
-          <HomePageLeaderboard initialEntries={lbEntries} />
-        </section>
+        }>
+          <HomePageData />
+        </Suspense>
 
         <section style={{ marginTop: "56px" }}>
           <CategoryBrowser />
         </section>
       </div>
+    </>
+  );
+}
+
+// Separate component for data fetching to allow streaming (Suspense)
+async function HomePageData() {
+  const supabase = await createClient();
+  const baseSelect = "id, name, slug, logo_url, category, description, x_handle, owner_id, claimed_by_user_id, is_listed_for_sale, asking_price, is_verified, is_anonymous, verified, created_at, sale_status_override, monthly_revenue, growth_rate, revenue_30d";
+
+  const [
+    { data: recentlyListedRaw },
+    { data: bestDealsRaw },
+    { data: fastestGrowingRaw },
+    { data: leaderboardRaw }
+  ] = await Promise.all([
+    supabase.from("startups").select(baseSelect).order("created_at", { ascending: false }).limit(3),
+    supabase.from("startups").select(baseSelect).filter("is_listed_for_sale", "eq", true).order("created_at", { ascending: false }).limit(3),
+    supabase.from("startups").select(baseSelect).filter("is_verified", "eq", true).order("growth_rate", { ascending: false }).limit(3),
+    supabase.from("startups").select(baseSelect).filter("is_verified", "eq", true).order("monthly_revenue", { ascending: false }).limit(10)
+  ]);
+
+  const allStartupsForStatus = [
+    ...(recentlyListedRaw || []),
+    ...(bestDealsRaw || []),
+    ...(fastestGrowingRaw || []),
+    ...(leaderboardRaw || [])
+  ];
+
+  const startupIds = Array.from(new Set(allStartupsForStatus.map((s: any) => s.id)));
+  const overridesMap: Record<string, string | null> = {};
+  for (const s of allStartupsForStatus) {
+    overridesMap[(s as any).id] = (s as any).sale_status_override ?? null;
+  }
+  const saleStatusMap = await getSaleStatusMap(startupIds, overridesMap);
+
+  const founderIds = Array.from(
+    new Set(
+      allStartupsForStatus
+        .flatMap((s: any) => [s.claimed_by_user_id, s.owner_id])
+        .filter(Boolean)
+    )
+  );
+
+  const founderMap = new Map();
+  if (founderIds.length > 0) {
+    const { data: founderProfiles } = await supabase
+      .from("users")
+      .select("id, name, x_handle, avatar_url")
+      .in("id", founderIds);
+
+    for (const p of founderProfiles || []) {
+      founderMap.set(p.id, p);
+    }
+  }
+
+  const prepareStartup = (s: any) => ({
+    ...s,
+    sale_status: s.sale_status_override === "sold" ? "sold" : (s.is_listed_for_sale ? (saleStatusMap.get(s.id) ?? "sale") : null),
+    snap: {
+      mrr: s.monthly_revenue || 0,
+      arr: (s.monthly_revenue || 0) * 12 || (s.revenue_30d || 0) * 12,
+      growth_rate: s.growth_rate || 0,
+      all_time_revenue: s.revenue_30d || 0,
+      snapshot_date: s.created_at
+    }
+  });
+
+  const recentlyListed = (recentlyListedRaw || []).map(prepareStartup);
+  const bestDeals = (bestDealsRaw || []).map(prepareStartup);
+  const fastestGrowing = (fastestGrowingRaw || []).map(prepareStartup);
+
+  const discoverySections = [
+    { title: "Recently listed", data: recentlyListed, link: "/browse?filter=recent" },
+    { title: "Best deals this week", data: bestDeals, link: "/browse?filter=deals" },
+    { title: "Fastest growing", data: fastestGrowing, link: "/browse?filter=growth" },
+  ];
+
+  const lbEntries = (leaderboardRaw || []).map((s) => {
+    const p = prepareStartup(s);
+    const founderProfile = founderMap.get(s.claimed_by_user_id || s.owner_id);
+    return {
+      startup_id: s.id,
+      startups: {
+        ...p,
+        founder_name: founderProfile?.name || null,
+        founder_handle: founderProfile?.x_handle || s.x_handle || null,
+        founder_avatar_url: founderProfile?.avatar_url || null,
+      },
+      mrr: p.snap.mrr,
+      arr: p.snap.arr,
+      growth_rate: p.snap.growth_rate,
+      all_time: p.snap.all_time_revenue,
+      is_anonymous: s.is_anonymous,
+      asking_price: s.asking_price
+    };
+  });
+
+  return (
+    <>
+      {discoverySections.map((section) => (
+        <section key={section.title} style={{ marginTop: "12px", marginBottom: "18px" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "12px",
+              padding: "0 4px",
+            }}
+          >
+            <h2 style={{ fontSize: "20px", fontWeight: 700, color: "var(--color-text)", letterSpacing: "-0.02em" }}>
+              {section.title}
+            </h2>
+            <Link
+              href={section.link}
+              className="glass-pill"
+              style={{ fontSize: "13px", color: "var(--color-secondary)", fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center", gap: "4px", padding: "8px 14px" }}
+            >
+              View all &rarr;
+            </Link>
+          </div>
+          <HomePageFeed
+            sectionTitle={section.title}
+            initialData={section.data}
+          />
+        </section>
+      ))}
+
+      <section style={{ marginTop: "56px" }}>
+        <div style={{ marginBottom: "20px", padding: "0 4px" }}>
+          <h2 style={{ fontSize: "20px", fontWeight: 700, color: "var(--color-text)", letterSpacing: "-0.02em" }}>
+            Verified Leaderboard
+          </h2>
+        </div>
+        <HomePageLeaderboard initialEntries={lbEntries} />
+      </section>
     </>
   );
 }

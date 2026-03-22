@@ -135,6 +135,7 @@ export function HomePageLeaderboard({ initialEntries }: { initialEntries: LBEntr
                                                             src={startup.logo_url}
                                                             alt={startup.name}
                                                             style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                                            loading="lazy"
                                                         />
                                                     ) : (
                                                         startup.name.charAt(0)
@@ -155,6 +156,7 @@ export function HomePageLeaderboard({ initialEntries }: { initialEntries: LBEntr
                                                         src={startup.founder_avatar_url}
                                                         alt={startup.founder_name || "Founder"}
                                                         style={{ width: 20, height: 20, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+                                                        loading="lazy"
                                                     />
                                                 )}
                                                 {startup.founder_name ? (
