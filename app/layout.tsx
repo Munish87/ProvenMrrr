@@ -83,21 +83,11 @@ import { AuthProvider } from "@/components/providers/AuthProvider";
 import { Footer } from "@/components/layout/Footer";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let session = null;
-  try {
-    const supabase = await createClient();
-    const { data } = await supabase.auth.getSession();
-    session = data?.session ?? null;
-  } catch (e) {
-    console.error("Auth session fetch failed in layout:", e);
-  }
-  const user = session?.user ?? null;
-
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning data-theme="dark">
       <head>
@@ -134,7 +124,7 @@ export default async function RootLayout({
             background: "var(--app-shell-overlay, transparent)",
           }}
         />
-        <AuthProvider initialSession={session} initialUser={user}>
+        <AuthProvider>
           <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
             <PageTransition>{children}</PageTransition>
             <Footer />

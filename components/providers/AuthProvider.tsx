@@ -39,6 +39,21 @@ export function AuthProvider({
     useEffect(() => {
         let isMounted = true;
 
+        const getInitialSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (isMounted) {
+                setSession(session);
+                setUser(session?.user ?? null);
+                setLoading(false);
+            }
+        };
+
+        if (!initialSession) {
+            getInitialSession();
+        } else {
+            setLoading(false);
+        }
+
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (isMounted) {
                 setSession(session);
