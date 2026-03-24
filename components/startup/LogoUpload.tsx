@@ -103,13 +103,14 @@ export function LogoUpload({ startupId, startupName, currentLogoUrl, onUploadSuc
                     {/* Image View */}
                     {previewUrl ? (
                         <div style={{ position: "absolute", inset: 4, borderRadius: "50%", overflow: "hidden" }}>
-                            <Image
-                                src={previewUrl || ""}
-                                alt={`${startupName} logo`}
-                                fill
-                                className="object-cover"
-                                unoptimized
-                            />
+                                <Image
+                                    src={previewUrl || ""}
+                                    alt={`${startupName} logo`}
+                                    fill
+                                    className="object-cover"
+                                    unoptimized
+                                    sizes="64px"
+                                />
                         </div>
                     ) : (
                         <span style={{ fontSize: 22, fontWeight: 800, color: "var(--color-text)" }}>

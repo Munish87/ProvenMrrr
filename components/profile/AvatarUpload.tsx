@@ -107,6 +107,7 @@ export function AvatarUpload({ userId, userName, currentAvatarUrl, onUploadSucce
                         fill
                         className="object-cover"
                         unoptimized
+                        sizes="72px"
                     />
                 ) : (
                     <span style={{ fontSize: 24, fontWeight: 700, color: "white" }}>
