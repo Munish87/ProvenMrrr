@@ -1,9 +1,9 @@
 import { MetadataRoute } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { CATEGORY_MAP } from "@/lib/categories";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // 1. Static high-level pages
   const staticPages: MetadataRoute.Sitemap = [
