@@ -44,7 +44,7 @@ export default function Refunds() {
         <section style={{ marginBottom: "32px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "16px" }}>3. Refund Process</h2>
           <p style={{ color: "var(--color-secondary)", marginBottom: "16px" }}>
-            To request a refund, please contact billing@provenmrr.com within 7 days of the transaction. Your request must include the transaction ID and a detailed explanation for the refund. Our team will review your request and respond within 3-5 business days.
+            To request a refund, please use our <Link href="/contact" style={{ color: "var(--color-accent)", fontWeight: 600 }}>Contact Page</Link> within 7 days of the transaction. Your request must include the transaction ID and a detailed explanation for the refund. Our team will review your request and respond within 3-5 business days.
           </p>
         </section>
 

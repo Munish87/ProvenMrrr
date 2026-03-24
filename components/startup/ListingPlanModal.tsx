@@ -40,6 +40,7 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ startupId }),
+                credentials: "include",
             });
             const data = await res.json();
             if (!res.ok) {

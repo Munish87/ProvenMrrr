@@ -24,40 +24,43 @@ export const useAuth = () => useContext(AuthContext);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const supabase = createClient();
     const router = useRouter();
 
     useEffect(() => {
+        let isMounted = true;
+
         const getInitialSession = async () => {
             const { data: { session } } = await supabase.auth.getSession();
-            setSession(session);
-            setUser(session?.user ?? null);
-            setLoading(false);
+            if (isMounted) {
+                setSession(session);
+                setUser(session?.user ?? null);
+            }
         };
 
         getInitialSession();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            setLoading(false);
-            
+            if (isMounted) {
+                setSession(session);
+                setUser(session?.user ?? null);
+            }
+
             // Refresh the server-side router state when auth changes
             router.refresh();
         });
 
         return () => {
+            isMounted = false;
             subscription.unsubscribe();
         };
     }, [supabase, router]);
 
     const signOut = async () => {
-        setLoading(true);
         await supabase.auth.signOut();
         router.push("/");
         router.refresh();
-        setLoading(false);
     };
 
     return (

@@ -16,8 +16,10 @@ import { StatusBadge } from "@/components/startup/StatusBadge";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { TrustMRRImporter } from "@/lib/services/trustmrrImporter";
+import { calculateHealthScore } from "@/lib/health-score/calculator";
 
-export const dynamic = "force-dynamic";
+// Revalidate startup profiles every hour
+export const revalidate = 3600;
 
 interface Props { params: Promise<{ id: string }>; }
 
@@ -38,8 +40,8 @@ function formatCountryLabel(country: string | null) {
     return trimmedCountry;
 }
 
-function getCountryFlag(country: string | null) {
-    if (!country) return null;
+function getCountryFlag(country: unknown) {
+    if (typeof country !== "string") return null;
 
     const trimmedCountry = country.trim();
     if (!/^[a-z]{2}$/i.test(trimmedCountry)) return null;
@@ -51,10 +53,11 @@ export async function generateMetadata({ params }: Props) {
     const { id } = await params;
     const supabase = await createClient();
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-    const { data } = await supabase.from("startups").select("name, description, is_anonymous, category, slug, monthly_revenue")
+    const { data, error } = await supabase.from("startups").select("name, description, is_anonymous, category, slug, monthly_revenue")
         .or(isUUID ? `id.eq.${id},slug.eq.${id}` : `slug.eq.${id}`)
         .maybeSingle();
-    
+
+    if (error) console.error("[generateMetadata] Startup fetch error:", error);
     if (!data) return { title: "Startup Not Found | ProvenMRR" };
 
     const name = data.is_anonymous ? "Anonymous Startup" : data.name;
@@ -85,115 +88,209 @@ export async function generateMetadata({ params }: Props) {
 export default async function StartupProfilePage({ params }: Props) {
     const { id } = await params;
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-    const { data: startup } = await supabase.from("startups").select("*")
-        .or(isUUID ? `id.eq.${id},slug.eq.${id}` : `slug.eq.${id}`)
-        .maybeSingle();
-    if (!startup) notFound();
+
+    // 1. Fetch startup, user, health score, and connection in parallel
+    const [
+        { data: { user } },
+        { data: startup },
+    ] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from("startups").select("*")
+            .or(isUUID ? `id.eq.${id},slug.eq.${id}` : `slug.eq.${id}`)
+            .maybeSingle()
+    ]);
+
+    if (!startup) {
+        console.error(`[StartupProfile] Startup not found for ID: ${id} (isUUID: ${isUUID})`);
+        notFound();
+    }
+
+    const adminSupabase = createAdminClient();
+    
+    // 2. Fetch secondary data in parallel (no saleStatusMap here — derived below from startup row)
+    const [
+        { data: healthScore },
+        { data: conn },
+        { data: snapshots }
+    ] = await Promise.all([
+        supabase.from("health_scores").select("score, risk_level, ai_summary, created_at").eq("startup_id", startup.id)
+            .order("created_at", { ascending: false }).limit(1)
+            .maybeSingle(),
+        adminSupabase.from("stripe_connections").select("encrypted_api_key, provider").eq("startup_id", startup.id).maybeSingle(),
+        supabase.from("revenue_snapshots").select("mrr, arr, all_time_revenue, growth_rate, churn_rate, customer_count, volatility_score, refund_rate, snapshot_date").eq("startup_id", startup.id)
+            .order("snapshot_date", { ascending: true })
+            .returns<{ mrr: number; arr: number; all_time_revenue: number; growth_rate: number; churn_rate: number; customer_count: number; volatility_score: number; refund_rate: number; snapshot_date: string }[]>()
+    ]);
+
     interface StartupInsights {
         value_proposition?: string;
         problem_solved?: string;
         pricing?: string;
         business_model?: string;
         tech_stack?: string[];
+        frontend_stack?: string[];
+        backend_stack?: string[];
     }
     let insights = startup.insights as StartupInsights | null;
+    const isDev = process.env.NODE_ENV !== "production";
 
-const isDev = process.env.NODE_ENV !== "production";
-
-    // Automatic Enrichment for TrustMRR startups missing insights
+    // Fire-and-forget enrichment — do NOT await, serve the page immediately
     if (startup.source === "trustmrr" && startup.slug && (!insights || Object.keys(insights).length <= 1)) {
-        const enriched = await TrustMRRImporter.enrichStartup(startup.slug);
-        if (enriched.success && enriched.data) {
-            // Update local state for immediate rendering
-            Object.assign(startup, enriched.data);
-            insights = enriched.data.insights as StartupInsights;
-            if (isDev) console.log(`[ProfileEnrichment] Successfully enriched ${startup.slug}`);
-        }
+        TrustMRRImporter.enrichStartup(startup.slug)
+            .then((enriched) => {
+                if (enriched.success && enriched.data && isDev) {
+                    console.log(`[ProfileEnrichment] Enriched ${startup.slug}`);
+                }
+            })
+            .catch(() => {});
     }
 
-    const saleStatusMap = await getSaleStatusMap([startup.id]);
+    // Pass pre-fetched override to avoid a redundant DB round-trip in getSaleStatusMap
+    const overridesMap: Record<string, string | null> = {
+        [startup.id]: (startup as any).sale_status_override ?? null,
+    };
+    // Check offers to determine final sale status (e.g. "offers" when pending bids exist)
+    const saleStatusMap = await getSaleStatusMap([startup.id], overridesMap);
     const saleStatus = saleStatusMap.get(startup.id) ?? (startup.is_listed_for_sale ? "sale" : null);
 
     let initialSaved = false;
-    if (user) {
-        const { data: existingWatchlist } = await supabase
-            .from("watchlists")
-            .select("id")
-            .eq("startup_id", startup.id)
-            .eq("user_id", user.id)
-            .maybeSingle();
-        if (existingWatchlist) initialSaved = true;
-    }
+    let ownerProfile: { name: string | null; x_handle: string | null; avatar_url: string | null } | null = null;
 
-    const { data: healthScore } = await supabase.from("health_scores").select("score, risk_level, ai_summary, created_at").eq("startup_id", startup.id)
-        .order("created_at", { ascending: false }).limit(1)
-        .returns<{ score: number; risk_level: string; ai_summary: string | null; created_at: string }[]>().single();
+    // Fetch watchlist + owner profile in parallel
+    const [watchlistResult, ownerProfileResult] = await Promise.all([
+        user && startup.id
+            ? supabase.from("watchlists").select("id").eq("startup_id", startup.id).eq("user_id", user.id).maybeSingle()
+            : Promise.resolve({ data: null }),
+        startup.claimed_by_user_id
+            ? supabase.from("users").select("name, x_handle, avatar_url").eq("id", startup.claimed_by_user_id).returns<{ name: string | null; x_handle: string | null; avatar_url: string | null }[]>().single()
+            : Promise.resolve({ data: null }),
+    ]);
 
-    const adminSupabase = createAdminClient();
-    const { data: conn } = await adminSupabase.from("stripe_connections").select("encrypted_api_key, provider").eq("startup_id", startup.id).maybeSingle();
+    if (watchlistResult.data) initialSaved = true;
+    ownerProfile = (ownerProfileResult.data ?? null) as { name: string | null; x_handle: string | null; avatar_url: string | null } | null;
 
     let latestSnap = null;
     let liveCountry: string | null = null;
     let liveFoundedDate: string | null = null;
-    let chartData: { month: string; mrr: number; arr: number }[] = [];
+    let chartData: { month: string; mrr: number; atr: number }[] = [];
 
     if (conn) {
-        try {
-            const apiKey = decryptApiKey(conn.encrypted_api_key);
-            const providerData = await fetchProviderData(conn.provider as any, apiKey);
-            liveCountry = providerData.metadata?.country || null;
-            liveFoundedDate = providerData.metadata?.founded_date || null;
-            const m = providerData.metrics;
-            latestSnap = {
-                mrr: m.mrr,
-                arr: m.arr,
-                all_time_revenue: m.allTimeRevenue,
-                growth_rate: m.momGrowthRate,
-                customer_count: m.customerCount,
-                churn_rate: m.churnRate,
-                volatility_score: m.volatilityScore,
-                refund_rate: m.refundRate,
-                last30DaysRevenue: m.last30DaysRevenue,
-            };
-            chartData = m.revenueByMonth.map(point => ({ 
-                month: point.month, 
-                mrr: point.revenue, 
-                arr: point.revenue * 12 
-            })) as any;
-        } catch (e) {
-            console.error("Failed to fetch live real constraints:", e);
+        // Only call the live Stripe API if we don't have a fresh snapshot from today.
+        // This is the single biggest source of page slowness — Stripe calls can take 5-10s.
+        const todayDate = new Date().toISOString().split("T")[0];
+        const hasFreshSnapshot = snapshots && snapshots.length > 0 &&
+            snapshots[snapshots.length - 1].snapshot_date >= todayDate;
+
+        if (!hasFreshSnapshot) {
+            try {
+                const apiKey = decryptApiKey(conn.encrypted_api_key);
+                const providerData = await fetchProviderData(conn.provider as any, apiKey);
+                liveCountry = providerData.metadata?.country || null;
+                liveFoundedDate = providerData.metadata?.founded_date || null;
+                const m = providerData.metrics;
+                latestSnap = {
+                    mrr: m.mrr,
+                    arr: m.arr,
+                    all_time_revenue: m.allTimeRevenue,
+                    growth_rate: m.momGrowthRate,
+                    customer_count: m.customerCount,
+                    churn_rate: m.churnRate,
+                    volatility_score: m.volatilityScore,
+                    refund_rate: m.refundRate,
+                    last30DaysRevenue: m.last30DaysRevenue,
+                };
+                let cumulativeAtr = 0;
+                chartData = m.revenueByMonth.map((point: any) => {
+                    cumulativeAtr += point.revenue;
+                    const d = new Date(point.date);
+                    return {
+                        month: d.toLocaleString("en-US", { month: "short", year: "2-digit" }),
+                        mrr: m.mrr,
+                        atr: cumulativeAtr,
+                    };
+                }) as any;
+
+                // Fire-and-forget: sync live metrics back to DB
+                if (m.mrr !== undefined && m.mrr !== null) {
+                    adminSupabase.from("startups").update({
+                        monthly_revenue: m.mrr,
+                        revenue_30d: m.last30DaysRevenue || m.mrr,
+                        growth_rate: m.momGrowthRate
+                    }).eq("id", startup.id).then(({ error }) => {
+                        if (error) console.error("Failed to sync live metrics:", error);
+                    });
+
+                    const snapData = {
+                        startup_id: startup.id,
+                        snapshot_date: todayDate,
+                        mrr: m.mrr,
+                        arr: m.arr || (m.mrr * 12),
+                        all_time_revenue: m.allTimeRevenue || 0,
+                        growth_rate: m.momGrowthRate || 0,
+                        customer_count: m.customerCount || 0,
+                        churn_rate: m.churnRate || 0,
+                        volatility_score: m.volatilityScore || 0,
+                        refund_rate: m.refundRate || 0,
+                    };
+                    adminSupabase.from("revenue_snapshots")
+                        .upsert(snapData, { onConflict: "startup_id,snapshot_date" })
+                        .then(({ error: upsertError }) => {
+                            if (upsertError) console.error("Failed to sync revenue snapshot:", upsertError.message);
+                        });
+                }
+            } catch (e) {
+                console.error("Failed to fetch live Stripe data:", e);
+            }
         }
     }
 
     if (!latestSnap) {
-        const { data: snap } = await supabase.from("revenue_snapshots").select("mrr, arr, all_time_revenue, growth_rate, churn_rate, customer_count, volatility_score, refund_rate").eq("startup_id", startup.id)
-            .order("snapshot_date", { ascending: false }).limit(1)
-            .returns<{ mrr: number; arr: number; all_time_revenue: number; growth_rate: number; churn_rate: number; customer_count: number; volatility_score: number; refund_rate: number }[]>().single();
-        if (snap) {
+        if (snapshots && snapshots.length > 0) {
+            const snap = snapshots[snapshots.length - 1]; // Newest based on date order
             latestSnap = {
                 ...snap,
             };
+
+            chartData = snapshots.map((s) => ({
+                month: new Date(s.snapshot_date).toLocaleString("en-US", { month: "short", day: "numeric", year: "2-digit" }),
+                mrr: s.mrr,
+                atr: s.all_time_revenue || 0,
+            })) as any;
         }
-
-        const { data: snapshots } = await supabase.from("revenue_snapshots").select("mrr, arr, snapshot_date").eq("startup_id", startup.id)
-            .order("snapshot_date", { ascending: true }).limit(12)
-            .returns<{ mrr: number; arr: number; snapshot_date: string }[]>();
-
-        chartData = (snapshots ?? []).map((s) => ({
-            month: new Date(s.snapshot_date).toLocaleString("en-US", { month: "short", day: "numeric" }),
-            mrr: s.mrr,
-            arr: s.arr || s.mrr * 12,
-        })) as any;
     }
 
-    let ownerProfile: { name: string | null; x_handle: string | null; avatar_url: string | null } | null = null;
-    if (startup.claimed_by_user_id) {
-        const { data: profile } = await supabase.from("users").select("name, x_handle, avatar_url").eq("id", startup.claimed_by_user_id)
-            .returns<{ name: string | null; x_handle: string | null; avatar_url: string | null }[]>().single();
-        ownerProfile = profile;
+    // 3. Fallback Health Score Calculation (if missing but metrics available)
+    let finalHealthScore = healthScore;
+    if (!finalHealthScore && latestSnap) {
+        const healthResult = calculateHealthScore({
+            mrr: latestSnap.mrr,
+            arr: latestSnap.arr,
+            allTimeRevenue: latestSnap.all_time_revenue || 0,
+            last30DaysRevenue: (latestSnap as any).last30DaysRevenue || latestSnap.mrr,
+            momGrowthRate: latestSnap.growth_rate || 0,
+            churnRate: latestSnap.churn_rate || 0,
+            refundRate: latestSnap.refund_rate || 0,
+            customerCount: latestSnap.customer_count || 0,
+            volatilityScore: latestSnap.volatility_score || 0,
+            revenueByMonth: [] // We don't have month-by-month here, but calculator handles it
+        });
+
+        finalHealthScore = {
+            score: healthResult.score,
+            risk_level: healthResult.riskLevel,
+            ai_summary: healthResult.aiSummary,
+            created_at: new Date().toISOString()
+        };
+
+        // Sync to DB (Await to ensure it completes in server component)
+        const { error: healthSyncError } = await adminSupabase.from("health_scores").upsert({
+            startup_id: startup.id,
+            score: healthResult.score,
+            risk_level: healthResult.riskLevel,
+            ai_summary: healthResult.aiSummary,
+        }, { onConflict: "startup_id" });
+        if (healthSyncError) console.error("Failed to sync on-the-fly health score:", healthSyncError);
     }
 
     const resolvedXHandle = ownerProfile?.x_handle || startup.x_handle;
@@ -220,20 +317,17 @@ const isDev = process.env.NODE_ENV !== "production";
         }
     }
 
-    let rawRelated = [];
-    if (startup.is_listed_for_sale) {
-        const { data: saleRelated } = await supabase.from("startups").select("id, name, logo_url, is_anonymous, category, description, is_listed_for_sale, is_verified, created_at, sale_status_override, asking_price")
-            .eq("is_listed_for_sale", true).neq("id", id).limit(50)
-            .returns<{ id: string; name: string; logo_url: string | null; is_anonymous: boolean; category: string | null; description: string | null; is_listed_for_sale: boolean; is_verified: boolean; created_at: string; sale_status_override: string | null; asking_price: number | null; }[]>();
-        rawRelated = saleRelated || [];
-    } else {
-        const { data: categoryRelated } = await supabase.from("startups").select("id, name, logo_url, is_anonymous, category, description, is_listed_for_sale, is_verified, created_at, sale_status_override, asking_price")
-            .eq("category", startup.category || "Software").neq("id", id).limit(50)
-            .returns<{ id: string; name: string; logo_url: string | null; is_anonymous: boolean; category: string | null; description: string | null; is_listed_for_sale: boolean; is_verified: boolean; created_at: string; sale_status_override: string | null; asking_price: number | null; }[]>();
-        rawRelated = categoryRelated || [];
-    }
+    // Targeted related startups query
+    const relatedQuery = supabase.from("startups")
+        .select("id, slug, name, logo_url, is_anonymous, category, description, is_listed_for_sale, is_verified, created_at, sale_status_override, asking_price")
+        .neq("id", startup.id)
+        .limit(6);
 
-    const shuffledRelated = [...rawRelated].sort(() => 0.5 - Math.random()).slice(0, 6);
+    const { data: rawRelated } = startup.is_listed_for_sale 
+        ? await relatedQuery.eq("is_listed_for_sale", true)
+        : await relatedQuery.eq("category", startup.category || "Software");
+
+    const shuffledRelated = rawRelated || [];
 
     let relatedSnapshotsMap: Record<string, any> = {};
     let relatedSaleStatusMap = new Map<string, "sale" | "offers" | "sold">();
@@ -271,11 +365,40 @@ const isDev = process.env.NODE_ENV !== "production";
         "description": startup.description,
         "applicationCategory": startup.category || "BusinessApplication",
         "operatingSystem": "Web",
+        "applicationSubCategory": startup.category,
         "offers": startup.is_listed_for_sale ? {
             "@type": "Offer",
             "price": startup.asking_price,
-            "priceCurrency": "USD"
-        } : undefined
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock",
+            "url": `https://provenmrr.com/startup/${startup.slug || startup.id}`
+        } : undefined,
+        "image": startup.logo_url || "https://provenmrr.com/icon.png",
+    };
+
+    const breadcrumbLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://provenmrr.com"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Browse Startups",
+                "item": "https://provenmrr.com/browse"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": startup.name,
+                "item": `https://provenmrr.com/startup/${startup.slug || startup.id}`
+            }
+        ]
     };
 
     return (
@@ -283,6 +406,10 @@ const isDev = process.env.NODE_ENV !== "production";
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
             />
             <Navbar user={user} />
 
@@ -309,25 +436,25 @@ const isDev = process.env.NODE_ENV !== "production";
                 )}
 
                 {/* Profile Card */}
-                <div className="card" style={{ padding: "48px", marginBottom: "40px" }}>
+                <div className="card" style={{ padding: "clamp(20px, 5vw, 48px)", marginBottom: "40px" }}>
                     {/* Header row */}
-                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 32 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 32 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0, flex: 1 }}>
-                            <div style={{ width: 88, height: 88, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <div style={{ width: "clamp(56px, 12vw, 88px)", height: "clamp(56px, 12vw, 88px)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                 {startup.logo_url && !startup.is_anonymous ? (
-                                    <div style={{ width: 88, height: 88, borderRadius: "50%", overflow: "hidden", flexShrink: 0, position: "relative", border: "1px solid var(--startup-card-logo-border)", boxShadow: "var(--startup-card-logo-shadow)", background: "var(--startup-card-logo-bg)" }}>
+                                    <div style={{ width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden", position: "relative", border: "1px solid var(--startup-card-logo-border)", boxShadow: "var(--startup-card-logo-shadow)", background: "var(--startup-card-logo-bg)" }}>
                                         <img src={startup.logo_url} alt={`${startup.name} logo`} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                                     </div>
                                 ) : (
-                                    <div style={{ width: 88, height: 88, fontSize: 38, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, letterSpacing: "-0.04em", filter: startup.is_anonymous ? "blur(5px)" : "none", background: "var(--startup-card-logo-bg)", color: "var(--color-text)", border: "1px solid var(--startup-card-logo-border)", boxShadow: "var(--startup-card-logo-shadow)" }}>
+                                    <div style={{ width: "100%", height: "100%", fontSize: "clamp(24px, 5vw, 38px)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, letterSpacing: "-0.04em", filter: startup.is_anonymous ? "blur(5px)" : "none", background: "var(--startup-card-logo-bg)", color: "var(--color-text)", border: "1px solid var(--startup-card-logo-border)", boxShadow: "var(--startup-card-logo-shadow)" }}>
                                         {startup.name.charAt(0)}
                                     </div>
                                 )}
                             </div>
                             <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
-                                    <h1 style={{ fontSize: 32, fontWeight: 700, color: "var(--color-text)", letterSpacing: "-0.02em", filter: startup.is_anonymous ? "blur(5px)" : "none", margin: 0 }}>{startup.name}</h1>
-                                    {(!!conn) && (
+                                <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 4 }}>
+                                    <h1 style={{ fontSize: "clamp(24px, 6vw, 32px)", fontWeight: 700, color: "var(--color-text)", letterSpacing: "-0.02em", filter: startup.is_anonymous ? "blur(5px)" : "none", margin: 0 }}>{startup.name}</h1>
+                                    {(startup.is_verified && startup.claimed_by_user_id) && (
                                         <div
                                             style={{
                                                 width: 26,
@@ -364,11 +491,12 @@ const isDev = process.env.NODE_ENV !== "production";
                     </div>
 
                     {/* Stat cards */}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 14, marginBottom: 40 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14, marginBottom: 40 }}>
                         {[
-                            { label: "MRR", value: formatCurrency(latestSnap?.mrr ?? 0), sub: `${latestSnap?.customer_count ?? 0} active subs` },
-                            { label: "ARR", value: formatCurrency(latestSnap?.arr ?? (latestSnap?.mrr ?? 0) * 12), sub: "Annual Run Rate" },
-                            { label: "Health Score", value: `${healthScore?.score ?? 0}/100`, sub: `${healthScore?.risk_level ?? "Unrated"} risk` },
+                            { label: "MRR", value: formatCurrency(latestSnap?.mrr ?? 0), sub: `${latestSnap?.customer_count ?? 0} active customers` },
+                            { label: "ARR", value: formatCurrency((latestSnap?.mrr || 0) * 12), sub: "Annual Recurring" },
+                            { label: "ATR", value: formatCurrency(latestSnap?.all_time_revenue || 0), sub: "All Time Revenue" },
+                             { label: "Health Score", value: `${finalHealthScore?.score ?? 0}/100`, sub: `${finalHealthScore ? (finalHealthScore.risk_level.charAt(0).toUpperCase() + finalHealthScore.risk_level.slice(1)) : "Unrated"} risk` },
                             {
                                 label: "Founded",
                                 value: (
@@ -395,23 +523,40 @@ const isDev = process.env.NODE_ENV !== "production";
                             {
                                 label: "Founder",
                                 value: resolvedXHandle ? (
-                                    <a href={`https://x.com/${cleanXHandle}`} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--color-text)", textDecoration: "none" }}>
+                                    <a href={`https://x.com/${cleanXHandle}`} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--color-text)", textDecoration: "none", width: "100%", overflow: "hidden" }}>
                                         {xData?.avatar_url && (
                                             <img src={xData.avatar_url} alt="Profile" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                                         )}
-                                        <span style={{ color: "var(--color-text)", fontWeight: 700 }}>
+                                        <span style={{ 
+                                            color: "var(--color-text)", 
+                                            fontWeight: 700,
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            whiteSpace: "nowrap",
+                                            flex: 1
+                                        }}>
                                             {resolvedFounderName || xData?.name || `@${cleanXHandle}`}
                                         </span>
                                     </a>
-                                ) : (resolvedFounderName || "—"),
+                                ) : (
+                                    <span style={{ 
+                                        display: "block",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                        width: "100%"
+                                    }}>
+                                        {resolvedFounderName || "—"}
+                                    </span>
+                                ),
                                 sub: resolvedXHandle ? (xData?.followers !== undefined ? `${xData.followers.toLocaleString()} followers` : "Founder") : "—"
                             },
                         ].map(({ label, value, sub }) => (
                             <div
                                 key={label}
                                 style={{
-                                    padding: "26px 24px",
-                                    minHeight: 138,
+                                    padding: "20px 24px",
+                                    height: 150,
                                     display: "flex",
                                     flexDirection: "column",
                                     justifyContent: "space-between",
@@ -421,11 +566,25 @@ const isDev = process.env.NODE_ENV !== "production";
                                     boxShadow: "var(--shadow-card)",
                                     backdropFilter: "blur(18px)",
                                     WebkitBackdropFilter: "blur(18px)",
+                                    overflow: "hidden"
                                 }}
                             >
-                                <p className="metric-label" style={{ marginBottom: 12, fontSize: "11px", letterSpacing: "0.08em", color: "var(--color-secondary)", opacity: 0.72 }}>{label}</p>
-                                <div style={{ fontSize: 28, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-0.03em", marginBottom: 8, lineHeight: 1.05 }}>{value}</div>
-                                <p style={{ fontSize: 13, color: "var(--color-secondary)", fontWeight: 500, opacity: 0.65 }}>{sub}</p>
+                                <p className="metric-label" style={{ marginBottom: 8, fontSize: "11px", letterSpacing: "0.08em", color: "var(--color-secondary)", opacity: 0.72 }}>{label}</p>
+                                <div style={{ 
+                                    fontSize: 28, 
+                                    fontWeight: 800, 
+                                    color: "var(--color-text)", 
+                                    letterSpacing: "-0.03em", 
+                                    marginBottom: 8, 
+                                    lineHeight: 1.05,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: label === "Founded" ? "normal" : "nowrap",
+                                    width: "100%"
+                                }}>
+                                    {value}
+                                </div>
+                                <p style={{ fontSize: 13, color: "var(--color-secondary)", fontWeight: 500, opacity: 0.65, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</p>
                             </div>
                         ))}
                     </div>
@@ -435,8 +594,8 @@ const isDev = process.env.NODE_ENV !== "production";
                          <RealRevenueDashboard
                             latestSnap={latestSnap}
                             chartData={chartData}
-                            healthScore={healthScore}
-                            isStripeConnected={!!conn}
+                             healthScore={finalHealthScore}
+                            isStripeConnected={!!conn && startup.is_verified}
                         />
                     ) : (
                         <div style={{ marginBottom: 40, padding: 40, background: "var(--color-surface-strong)", border: "1px solid var(--color-border)", borderRadius: 20, textAlign: "center", color: "var(--color-secondary)" }}>
@@ -447,7 +606,7 @@ const isDev = process.env.NODE_ENV !== "production";
                     {/* Founder Card */}
                     <div style={{ marginBottom: 48 }}>
                         <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--color-text)", marginBottom: 24, letterSpacing: "-0.01em" }}>Founder</h2>
-                        <div style={{ padding: 28, display: "flex", alignItems: "center", gap: 24, background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 16, boxShadow: "var(--shadow-card)" }}>
+                        <div style={{ padding: "clamp(20px, 4vw, 28px)", display: "flex", alignItems: "center", flexWrap: "wrap", gap: 24, background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 16, boxShadow: "var(--shadow-card)" }}>
                             {ownerProfile?.avatar_url ? (
                                 <img src={ownerProfile.avatar_url} alt="Profile" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }} />
                             ) : resolvedXHandle && xData?.avatar_url ? (
@@ -458,10 +617,10 @@ const isDev = process.env.NODE_ENV !== "production";
                                 </div>
                             )}
                             <div>
-                                <p style={{ fontSize: 18, fontWeight: 600, color: "var(--color-text)", margin: 0 }}>
+                                <p style={{ fontSize: 18, fontWeight: 600, color: "var(--color-text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                     {startup.claimed_by_user_id ? (
                                         resolvedXHandle ? (
-                                            <a href={`https://x.com/${cleanXHandle}`} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-text)", textDecoration: "none" }}>
+                                            <a href={`https://x.com/${cleanXHandle}`} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-text)", textDecoration: "none", display: "inline-block", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                                 <span style={{ color: "var(--color-text)", fontWeight: 700 }}>
                                                     {resolvedFounderName || xData?.name || `@${cleanXHandle}`}
                                                 </span>
@@ -502,7 +661,7 @@ const isDev = process.env.NODE_ENV !== "production";
                             {insights && (
                                 <div style={{ 
                                     display: "grid", 
-                                    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", 
+                                    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", 
                                     gap: "32px", 
                                     marginBottom: 32 
                                 }}>
@@ -602,10 +761,26 @@ const isDev = process.env.NODE_ENV !== "production";
                                     {(() => {
                                         const techFromInsights = insights?.tech_stack || [];
                                         const techFromTags = startup.tags || [];
-                                        const techStack = [...new Set([...techFromInsights, ...techFromTags])];
-                                        const frontendTechs = techStack.filter((t: string) => TECH_STACK_OPTIONS.find((o: any) => o.value === t)?.category === 'frontend');
-                                        const backendTechs = techStack.filter((t: string) => TECH_STACK_OPTIONS.find((o: any) => o.value === t)?.category === 'backend');
-                                        const otherTags = techFromTags.filter((t: string) => !techStack.includes(t) || !TECH_STACK_OPTIONS.find((o: any) => o.value === t));
+                                        const techStack = [...new Set([...techFromInsights, ...techFromTags])]
+                                            .filter((t: string) => t && t !== "[object Object]");
+                                        
+                                        // Use pre-categorized stacks if available, otherwise filter
+                                        const insightFrontend = insights?.frontend_stack || [];
+                                        const insightBackend = insights?.backend_stack || [];
+                                        
+                                        const frontendTechs = [...new Set([
+                                            ...insightFrontend,
+                                            ...techStack.filter((t: string) => TECH_STACK_OPTIONS.find((o: any) => o.value === t)?.category === 'frontend')
+                                        ])];
+                                        
+                                        const backendTechs = [...new Set([
+                                            ...insightBackend,
+                                            ...techStack.filter((t: string) => TECH_STACK_OPTIONS.find((o: any) => o.value === t)?.category === 'backend')
+                                        ])];
+                                        
+                                        const otherTags = techStack.filter((t: string) => 
+                                            !frontendTechs.includes(t) && !backendTechs.includes(t)
+                                        );
 
                                         return (
                                             <>

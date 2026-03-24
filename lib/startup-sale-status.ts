@@ -2,7 +2,18 @@ import { createAdminClient } from "@/lib/supabase/server";
 
 export type StartupSaleStatus = "sale" | "offers" | "sold";
 
-export async function getSaleStatusMap(startupIds: string[]) {
+/**
+ * Builds a sale status map for the given startup IDs.
+ * 
+ * @param startupIds - The IDs of the startups to check.
+ * @param overrides - Optional pre-fetched map of startup_id → sale_status_override.
+ *                    Pass this in to avoid a redundant DB round-trip when you already
+ *                    have the startup rows (e.g. from the main page query).
+ */
+export async function getSaleStatusMap(
+    startupIds: string[],
+    overrides?: Record<string, string | null>
+) {
     const uniqueIds = [...new Set(startupIds.filter(Boolean))];
     const statusMap = new Map<string, StartupSaleStatus>();
 
@@ -11,25 +22,32 @@ export async function getSaleStatusMap(startupIds: string[]) {
     }
 
     const adminSupabase = createAdminClient();
-    
-    // Batch requests to handle Supabase's 1,000 record limit and URL length constraints
     const CHUNK_SIZE = 500;
+
     for (let i = 0; i < uniqueIds.length; i += CHUNK_SIZE) {
         const chunk = uniqueIds.slice(i, i + CHUNK_SIZE);
-        
-        // Fetch startup overrides
-        const { data: chunkStartups } = await adminSupabase
-            .from("startups")
-            .select("id, sale_status_override")
-            .in("id", chunk);
 
-        for (const startup of chunkStartups ?? []) {
-            if (startup.sale_status_override === "sold") {
-                statusMap.set(startup.id, "sold");
+        // Use pre-fetched overrides if provided, otherwise fetch from DB
+        if (overrides) {
+            for (const id of chunk) {
+                if (overrides[id] === "sold") {
+                    statusMap.set(id, "sold");
+                }
+            }
+        } else {
+            const { data: chunkStartups } = await adminSupabase
+                .from("startups")
+                .select("id, sale_status_override")
+                .in("id", chunk);
+
+            for (const startup of chunkStartups ?? []) {
+                if (startup.sale_status_override === "sold") {
+                    statusMap.set(startup.id, "sold");
+                }
             }
         }
 
-        // Fetch offers
+        // Only fetch offers (the part that isn't already in the startup row)
         const { data: chunkOffers, error } = await adminSupabase
             .from("offers")
             .select("startup_id, status")
@@ -43,12 +61,10 @@ export async function getSaleStatusMap(startupIds: string[]) {
             if (statusMap.get(offer.startup_id) === "sold") {
                 continue;
             }
-
             if (offer.status === "accepted") {
                 statusMap.set(offer.startup_id, "sold");
                 continue;
             }
-
             if (offer.status === "pending") {
                 statusMap.set(offer.startup_id, "offers");
             }

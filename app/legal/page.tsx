@@ -23,31 +23,14 @@ export default function Legal() {
         </p>
 
         <section style={{ marginBottom: "32px" }}>
-          <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "16px" }}>1. Company Information</h2>
-          <p style={{ color: "var(--color-secondary)", marginBottom: "8px" }}>
-            <strong>Company Name:</strong> ProvenMRR
-          </p>
-          <p style={{ color: "var(--color-secondary)", marginBottom: "8px" }}>
-            <strong>Email:</strong> legal@provenmrr.com
-          </p>
-        </section>
-
-        <section style={{ marginBottom: "32px" }}>
-          <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "16px" }}>2. Representative</h2>
-          <p style={{ color: "var(--color-secondary)", marginBottom: "16px" }}>
-            The representative of ProvenMRR is the designated project lead. For any legal inquiries, please use the contact information provided above.
-          </p>
-        </section>
-
-        <section style={{ marginBottom: "32px" }}>
-          <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "16px" }}>3. Intellectual Property</h2>
+          <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "16px" }}>1. Intellectual Property</h2>
           <p style={{ color: "var(--color-secondary)", marginBottom: "16px" }}>
             All content on this website, including text, graphics, logos, images, and software, is the property of ProvenMRR and is protected by international copyright, trademark, and other intellectual property laws.
           </p>
         </section>
 
         <section style={{ marginBottom: "32px" }}>
-          <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "16px" }}>4. Governing Law</h2>
+          <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "16px" }}>2. Governing Law</h2>
           <p style={{ color: "var(--color-secondary)", marginBottom: "16px" }}>
             These legal notices and the use of the website are governed by the laws of the jurisdiction in which the company operates, without regard to its conflict of law principles.
           </p>

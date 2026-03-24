@@ -9,6 +9,9 @@ import { cookies } from "next/headers";
 
 export const metadata = { title: "Dashboard — ProvenMRR" };
 
+// Cache for 30 seconds to speed up repeat visits while keeping data fresh for dashboard
+export const revalidate = 30;
+
 export default async function DashboardPage() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -18,32 +21,37 @@ export default async function DashboardPage() {
     const role = (cookieStore.get("dashboard_role")?.value as "buyer" | "seller") || "seller";
 
     if (role === "buyer") {
-        // Fetch Buyer Stats
-        const { data: watchlists } = await supabase.from("watchlists").select("startup_id").eq("user_id", user.id).returns<{ startup_id: string }[]>();
-        const { data: sentOffers } = await supabase.from("offers").select("id, amount, status, startup_id, created_at").eq("buyer_id", user.id).order("created_at", { ascending: false }).limit(3).returns<{ id: string; amount: number; status: string; startup_id: string; created_at: string }[]>();
-        const { data: totalListed } = await supabase.from("startups").select("id", { count: "exact" }).eq("is_listed_for_sale", true);
+        // Fetch Primary Buyer Data in parallel
+        const [watchlistsRes, sentOffersRes, totalListedRes] = await Promise.all([
+            supabase.from("watchlists").select("startup_id").eq("user_id", user.id).returns<{ startup_id: string }[]>(),
+            supabase.from("offers").select("id, amount, status, startup_id, created_at").eq("buyer_id", user.id).order("created_at", { ascending: false }).limit(3).returns<{ id: string; amount: number; status: string; startup_id: string; created_at: string }[]>(),
+            supabase.from("startups").select("id", { count: "exact", head: true }).eq("is_listed_for_sale", true)
+        ]);
 
-        // Fetch Startup Names for Sent Offers
+        const watchlists = watchlistsRes.data;
+        const sentOffers = sentOffersRes.data;
+        const totalListedCount = totalListedRes.count;
+
+        // Fetch Secondary Data (Startup details) in parallel
         const sentStartupIds = (sentOffers ?? []).map(o => o.startup_id);
-        const { data: sentStartupsData } = await supabase
-            .from("startups")
-            .select("id, name")
-            .in("id", sentStartupIds.length > 0 ? sentStartupIds : ["none"])
-            .returns<{ id: string; name: string }[]>();
-        const sentStartupMap = new Map((sentStartupsData ?? []).map(s => [s.id, s.name]));
-
         const savedStartupIds = (watchlists ?? []).map(w => w.startup_id);
-        const { data: savedStartups } = await supabase
-            .from("startups")
-            .select("id, name, is_verified, is_listed_for_sale")
-            .in("id", savedStartupIds.length > 0 ? savedStartupIds : ["none"])
-            .limit(5)
-            .returns<{ id: string; name: string; is_verified: boolean; is_listed_for_sale: boolean }[]>();
+
+        const [sentStartupsRes, savedStartupsRes] = await Promise.all([
+            sentStartupIds.length > 0
+                ? supabase.from("startups").select("id, name").in("id", sentStartupIds).returns<{ id: string; name: string }[]>()
+                : Promise.resolve({ data: [] }),
+            savedStartupIds.length > 0
+                ? supabase.from("startups").select("id, name, is_verified, is_listed_for_sale").in("id", savedStartupIds).limit(5).returns<{ id: string; name: string; is_verified: boolean; is_listed_for_sale: boolean }[]>()
+                : Promise.resolve({ data: [] })
+        ]);
+
+        const sentStartupMap = new Map((sentStartupsRes.data ?? []).map(s => [s.id, s.name]));
+        const savedStartups = savedStartupsRes.data;
 
         const stats = [
             { label: "Saved Startups", value: String(watchlists?.length ?? 0), icon: Heart, iconColor: "#EC4899" },
             { label: "Offers Sent", value: String(sentOffers?.length ?? 0), icon: Send, iconColor: "#6366F1" },
-            { label: "Market Listings", value: String(totalListed?.length ?? 0), icon: Globe, iconColor: "#10B981" },
+            { label: "Market Listings", value: String(totalListedCount ?? 0), icon: Globe, iconColor: "#10B981" },
         ];
 
         return (
@@ -172,19 +180,18 @@ export default async function DashboardPage() {
 
     const startupIds = (startups ?? []).map((s) => s.id);
 
-    const { data: healthScores } = await supabase
-        .from("health_scores")
-        .select("startup_id, score, risk_level, created_at")
-        .in("startup_id", startupIds.length > 0 ? startupIds : ["none"])
-        .order("created_at", { ascending: false })
-        .returns<{ startup_id: string; score: number; risk_level: string; created_at: string }[]>();
+    // Fetch Health Scores and Snapshots in parallel
+    const [healthScoresRes, snapshotsRes] = await Promise.all([
+        startupIds.length > 0
+            ? supabase.from("health_scores").select("startup_id, score, risk_level, created_at").in("startup_id", startupIds).order("created_at", { ascending: false }).returns<{ startup_id: string; score: number; risk_level: string; created_at: string }[]>()
+            : Promise.resolve({ data: [] }),
+        startupIds.length > 0
+            ? supabase.from("revenue_snapshots").select("startup_id, mrr, growth_rate").in("startup_id", startupIds).order("snapshot_date", { ascending: false }).returns<{ startup_id: string; mrr: number; growth_rate: number }[]>()
+            : Promise.resolve({ data: [] })
+    ]);
 
-    const { data: snapshots } = await supabase
-        .from("revenue_snapshots")
-        .select("startup_id, mrr, growth_rate")
-        .in("startup_id", startupIds.length > 0 ? startupIds : ["none"])
-        .order("snapshot_date", { ascending: false })
-        .returns<{ startup_id: string; mrr: number; growth_rate: number }[]>();
+    const healthScores = healthScoresRes.data;
+    const snapshots = snapshotsRes.data;
 
     const scoreMap = new Map<string, number>();
     for (const hs of healthScores ?? []) if (!scoreMap.has(hs.startup_id)) scoreMap.set(hs.startup_id, hs.score);

@@ -55,7 +55,10 @@ export default function Sidebar({ userEmail, userName, avatarUrl, role }: { user
                     fontWeight: 800,
                     fontSize: 17,
                 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--color-accent)" }} />
+                    <div className="site-logo-icon">
+                        <img src="/logo-black.png" alt="ProvenMRR" className="logo-dark" />
+                        <img src="/logo-white.png" alt="ProvenMRR" className="logo-light" />
+                    </div>
                     ProvenMRR
                 </Link>
             </div>

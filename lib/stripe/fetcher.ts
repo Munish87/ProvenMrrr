@@ -27,15 +27,21 @@ export async function fetchStripeData(apiKey: string): Promise<RawStripeData> {
             .list({ limit: 100, status: "all", expand: ["data.items"] })
             .autoPagingToArray({ limit: 1000 });
     } catch (err: any) {
-        if (isDev) console.warn("[Stripe] Skipping subscriptions fetch. Permissions likely missing.", err.message);
+        if (err.type === "StripePermissionError" || (err.message && err.message.toLowerCase().includes("permission"))) {
+            throw new Error("Missing required Stripe API permission: 'Subscriptions' (Read). Please check your Restricted API Key.");
+        }
+        if (isDev) console.warn("[Stripe] Skipping subscriptions fetch.", err.message);
     }
 
     try {
         charges = await stripe.charges
             .list({ limit: 100 })
-            .autoPagingToArray({ limit: 2000 });
+            .autoPagingToArray({ limit: 10000 });
     } catch (err: any) {
-        if (isDev) console.warn("[Stripe] Skipping charges fetch. Permissions likely missing.", err.message);
+        if (err.type === "StripePermissionError" || (err.message && err.message.toLowerCase().includes("permission"))) {
+            throw new Error("Missing required Stripe API permission: 'Charges' (Read). Please check your Restricted API Key.");
+        }
+        if (isDev) console.warn("[Stripe] Skipping charges fetch.", err.message);
     }
 
     let name = "Stripe Startup";

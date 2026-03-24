@@ -1,14 +1,13 @@
 "use client";
 
 import {
-    Sparkles, Cloud, Terminal, CreditCard, ClipboardCheck,
+    Sparkles, Cloud, Terminal, CreditCard,
     Megaphone, ShoppingBag, PenTool, Boxes, BarChart3,
-    GraduationCap, Heart, Share2, Video, TrendingUp,
-    Headphones, Users, Home, Plane, ShieldCheck,
+    GraduationCap, Share2, Video,
+    Headphones, Users, Home, Plane,
     BarChart2, MessageCircle, Bitcoin, Film, Gamepad2,
     Leaf, HeartPulse, Cpu, Scale, Store, Smartphone,
-    Newspaper, CheckCircle, Briefcase, Shield, Wrench,
-    Package
+    Newspaper, CheckCircle, Briefcase, Shield, Wrench
 } from "lucide-react";
 import Link from "next/link";
 
@@ -52,7 +51,7 @@ export function CategoryBrowser({
     activeSlug?: string
 }) {
     return (
-        <section style={{ marginTop: activeSlug ? 0 : 64, marginBottom: activeSlug ? 0 : 80 }}>
+        <section style={{ marginTop: activeSlug ? 0 : 32, marginBottom: activeSlug ? 0 : 40 }}>
             <div style={{ textAlign: "center", marginBottom: 40 }}>
                 <h2 style={{
                     fontSize: 24,
@@ -86,6 +85,7 @@ export function CategoryBrowser({
                     borderRadius: 40,
                     background: "var(--color-surface)",
                     boxShadow: "var(--shadow-card)",
+                    border: "1px solid var(--color-border)",
                 }}
             >
                 <div style={{

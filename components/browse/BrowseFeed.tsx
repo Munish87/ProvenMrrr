@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Plus, SlidersHorizontal, AlertCircle, Search, ChevronDown } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { FrictionlessAddWrapper } from "../startup/FrictionlessAddWrapper";
 import { OfferModal } from "../startup/OfferModal";
 import { CATEGORY_MAP } from "@/lib/categories";
@@ -22,6 +23,7 @@ type StartupBase = {
     is_verified: boolean;
     is_anonymous: boolean;
     created_at: string;
+    slug?: string | null;
     asking_price?: number | null;
     sale_status?: StartupSaleStatus | null;
     monthly_revenue?: number | null;
@@ -228,17 +230,34 @@ function getListedTimeLabel(createdAt: string) {
 
 export function BrowseFeed({
     initialStartups,
+    totalCount,
     initialQuery = "",
     initialCategory = "All",
     initialCountry = "All",
-    initialOnlyForSale = true // Default to true for marketplace feel
+    initialOnlyForSale = false,
+    initialMinMrr = "",
+    initialMaxMrr = "",
+    initialMinGrowth = "",
+    initialMaxGrowth = "",
+    initialMinPrice = "",
+    initialMaxPrice = "",
+    initialMaxMultiple = "Any",
 }: {
     initialStartups: BrowseStartupNode[],
+    totalCount: number,
     initialQuery?: string,
     initialCategory?: string,
     initialCountry?: string,
-    initialOnlyForSale?: boolean
+    initialOnlyForSale?: boolean,
+    initialMinMrr?: string,
+    initialMaxMrr?: string,
+    initialMinGrowth?: string,
+    initialMaxGrowth?: string,
+    initialMinPrice?: string,
+    initialMaxPrice?: string,
+    initialMaxMultiple?: string,
 }) {
+    const router = useRouter();
     const fieldShellStyle = {
         padding: "0 12px",
         height: 40,
@@ -261,115 +280,120 @@ export function BrowseFeed({
 
     const [searchQuery, setSearchQuery] = useState(initialQuery);
     const [category, setCategory] = useState(initialCategory);
-    const [country] = useState(initialCountry);
+    const [country, setCountry] = useState(initialCountry);
     const [onlyForSale, setOnlyForSale] = useState(initialOnlyForSale);
 
     const [offerStartupId, setOfferStartupId] = useState<string | null>(null);
     const [offerStartupName, setOfferStartupName] = useState<string | null>(null);
 
-    const [minMrr, setMinMrr] = useState("");
-    const [maxMrr, setMaxMrr] = useState("");
+    const [minMrr, setMinMrr] = useState(initialMinMrr);
+    const [maxMrr, setMaxMrr] = useState(initialMaxMrr);
 
-    const [minGrowth, setMinGrowth] = useState("");
-    const [maxGrowth, setMaxGrowth] = useState("");
+    const [minGrowth, setMinGrowth] = useState(initialMinGrowth);
+    const [maxGrowth, setMaxGrowth] = useState(initialMaxGrowth);
 
     const [minMargin, setMinMargin] = useState("");
     const [maxMargin, setMaxMargin] = useState("");
 
-    const [minPrice, setMinPrice] = useState("");
-    const [maxPrice, setMaxPrice] = useState("");
-    const [maxMultiple, setMaxMultiple] = useState("Any");
+    const [minPrice, setMinPrice] = useState(initialMinPrice);
+    const [maxPrice, setMaxPrice] = useState(initialMaxPrice);
+    const [maxMultiple, setMaxMultiple] = useState(initialMaxMultiple);
 
     const [timeListed, setTimeListed] = useState("Any time");
 
-    const [visibleItems, setVisibleItems] = useState(50);
+    const [startups, setStartups] = useState<BrowseStartupNode[]>(initialStartups);
+    const [page, setPage] = useState(1);
+    const [loadingMore, setLoadingMore] = useState(false);
 
-    const hasActiveFilters = searchQuery !== "" || category !== "All" || country !== "All" || !onlyForSale || minMrr !== "" || maxMrr !== "" || minGrowth !== "" || maxGrowth !== "" || minMargin !== "" || maxMargin !== "" || timeListed !== "Any time" || minPrice !== "" || maxPrice !== "" || maxMultiple !== "Any";
-    const filteredStartups = useMemo(() => {
-        return initialStartups.filter(s => {
-            const rawMrr = s.snap?.mrr ?? s.monthly_revenue;
-            const mrr = typeof rawMrr === "string" ? parseFloat(rawMrr) : (rawMrr || 0);
+    useEffect(() => {
+        setStartups(initialStartups);
+        setPage(1);
+        setSearchQuery(initialQuery || "");
+        setCategory(initialCategory || "All");
+        setCountry(initialCountry || "All");
+        setOnlyForSale(initialOnlyForSale ?? false);
+        setMinMrr(initialMinMrr || "");
+        setMaxMrr(initialMaxMrr || "");
+        setMinGrowth(initialMinGrowth || "");
+        setMaxGrowth(initialMaxGrowth || "");
+        setMinPrice(initialMinPrice || "");
+        setMaxPrice(initialMaxPrice || "");
+        setMaxMultiple(initialMaxMultiple || "Any");
+    }, [
+        initialStartups, initialQuery, initialCategory, initialCountry, initialOnlyForSale,
+        initialMinMrr, initialMaxMrr, initialMinGrowth, initialMaxGrowth,
+        initialMinPrice, initialMaxPrice, initialMaxMultiple
+    ]);
 
-            const rawGrowth = s.snap?.growth_rate ?? s.growth_rate;
-            const growth = typeof rawGrowth === "string" ? parseFloat(rawGrowth) : (rawGrowth || 0);
+    // Filter logic is now on Server, so filteredStartups just uses the startups state
+    const filteredStartups = startups;
+    const displayedStartups = startups;
 
-            const margin = getDeterministicProfitMargin(s.name);
-            const listedLabel = getListedTimeLabel(s.created_at);
-            const price = typeof s.asking_price === "string" ? parseFloat(s.asking_price) : (s.asking_price || 0);
-            const multiple = (price && mrr) ? (price / (mrr * 12)) : 0;
-
-            if (searchQuery) {
-                const q = searchQuery.toLowerCase();
-                const matched = s.name.toLowerCase().includes(q) ||
-                    (s.description && s.description.toLowerCase().includes(q)) ||
-                    (s.category && s.category.toLowerCase().includes(q));
-                if (!matched) return false;
+    const updateUrl = (params: Record<string, string | null>) => {
+        const url = new URL(window.location.href);
+        Object.entries(params).forEach(([key, val]) => {
+            if (val === null || val === "" || val === "All" || val === "Any" || val === "Any time") {
+                url.searchParams.delete(key);
+            } else {
+                url.searchParams.set(key, val);
             }
-
-            if (category !== "All" && s.category !== category) return false;
-            if (country !== "All" && (s.country || "").toUpperCase() !== country) return false;
-            if (onlyForSale && !s.is_listed_for_sale) return false;
-
-            if (minMrr && mrr < Number(minMrr)) return false;
-            if (maxMrr && mrr > Number(maxMrr)) return false;
-
-            if (minGrowth && growth < Number(minGrowth)) return false;
-            if (maxGrowth && growth > Number(maxGrowth)) return false;
-
-            if (minMargin && margin < Number(minMargin)) return false;
-            if (maxMargin && margin > Number(maxMargin)) return false;
-
-            if (minPrice && price < Number(minPrice)) return false;
-            if (maxPrice && price > Number(maxPrice)) return false;
-
-            if (maxMultiple !== "Any") {
-                const limit = parseFloat(maxMultiple.replace("x", ""));
-                if (multiple > limit) return false;
-            }
-
-            if (timeListed === "This week" && listedLabel !== "This week") return false;
-            if (timeListed === "This month" && listedLabel !== "This week" && listedLabel !== "This month") return false;
-
-            return true;
         });
-    }, [initialStartups, searchQuery, category, country, onlyForSale, minMrr, maxMrr, minGrowth, maxGrowth, minMargin, maxMargin, timeListed, minPrice, maxPrice, maxMultiple]);
-
-    const displayedStartups = useMemo(() => {
-        return filteredStartups.slice(0, visibleItems);
-    }, [filteredStartups, visibleItems]);
+        // Reset page when filters change
+        url.searchParams.delete("page");
+        router.replace(url.toString(), { scroll: false });
+    };
 
     const handleSearchChange = (val: string) => {
         setSearchQuery(val);
-        const url = new URL(window.location.href);
-        if (val) {
-            url.searchParams.set("q", val);
-        } else {
-            url.searchParams.delete("q");
-        }
-        window.history.replaceState({}, '', url.toString());
+        updateUrl({ q: val });
     };
 
     const handleCategoryChange = (val: string) => {
         setCategory(val);
-        const url = new URL(window.location.href);
-        if (val && val !== "All") {
-            url.searchParams.set("category", val);
-        } else {
-            url.searchParams.delete("category");
-        }
-        window.history.replaceState({}, '', url.toString());
+        updateUrl({ category: val });
     };
 
     const handleOnlyForSaleChange = (val: boolean) => {
         setOnlyForSale(val);
-        const url = new URL(window.location.href);
-        if (!val) {
-            url.searchParams.set("filter", "all");
-        } else {
-            url.searchParams.delete("filter");
-        }
-        window.history.replaceState({}, '', url.toString());
+        updateUrl({ filter: val ? "deals" : "all" });
     };
+
+    const handleNumericFilterChange = (key: string, val: string, setter: (v: string) => void) => {
+        setter(val);
+        updateUrl({ [key]: val });
+    };
+
+    const handleLoadMore = async () => {
+        if (loadingMore) return;
+        setLoadingMore(true);
+        const nextPage = page + 1;
+        
+        try {
+            const more = await import("@/app/actions/browse").then(m => m.fetchMoreStartups({
+                page: nextPage,
+                searchQuery,
+                category,
+                country,
+                onlyForSale,
+                minMrr,
+                maxMrr,
+                minPrice,
+                maxPrice,
+                sort: initialOnlyForSale ? undefined : "growth" // Simplified example
+            }));
+            
+            if (more.length > 0) {
+                setStartups(prev => [...prev, ...more]);
+                setPage(nextPage);
+            }
+        } catch (e) {
+            console.error("Failed to load more:", e);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
+
+    const hasActiveFilters = searchQuery !== "" || category !== "All" || country !== "All" || !onlyForSale || minMrr !== "" || maxMrr !== "" || minGrowth !== "" || maxGrowth !== "" || minMargin !== "" || maxMargin !== "" || timeListed !== "Any time" || minPrice !== "" || maxPrice !== "" || maxMultiple !== "Any";
 
 
     return (
@@ -449,11 +473,11 @@ export function BrowseFeed({
                         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 12 }}>
                             <div style={fieldShellStyle}>
                                 <span style={{ fontSize: 13, color: "var(--color-secondary)", marginRight: 4 }}>$</span>
-                                <input type="number" placeholder="Min" value={minMrr} onChange={e => setMinMrr(e.target.value)} style={fieldInputStyle} />
+                                <input type="number" placeholder="Min" value={minMrr} onChange={e => handleNumericFilterChange("minMrr", e.target.value, setMinMrr)} style={fieldInputStyle} />
                             </div>
                             <div style={fieldShellStyle}>
                                 <span style={{ fontSize: 13, color: "var(--color-secondary)", marginRight: 4 }}>$</span>
-                                <input type="number" placeholder="Max" value={maxMrr} onChange={e => setMaxMrr(e.target.value)} style={fieldInputStyle} />
+                                <input type="number" placeholder="Max" value={maxMrr} onChange={e => handleNumericFilterChange("maxMrr", e.target.value, setMaxMrr)} style={fieldInputStyle} />
                             </div>
                         </div>
                     </div>
@@ -464,11 +488,11 @@ export function BrowseFeed({
                         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 12 }}>
                             <div style={fieldShellStyle}>
                                 <span style={{ fontSize: 13, color: "var(--color-secondary)", marginRight: 4 }}>$</span>
-                                <input type="number" placeholder="Min" value={minPrice} onChange={e => setMinPrice(e.target.value)} style={fieldInputStyle} />
+                                <input type="number" placeholder="Min" value={minPrice} onChange={e => handleNumericFilterChange("minPrice", e.target.value, setMinPrice)} style={fieldInputStyle} />
                             </div>
                             <div style={fieldShellStyle}>
                                 <span style={{ fontSize: 13, color: "var(--color-secondary)", marginRight: 4 }}>$</span>
-                                <input type="number" placeholder="Max" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} style={fieldInputStyle} />
+                                <input type="number" placeholder="Max" value={maxPrice} onChange={e => handleNumericFilterChange("maxPrice", e.target.value, setMaxPrice)} style={fieldInputStyle} />
                             </div>
                         </div>
                     </div>
@@ -477,7 +501,10 @@ export function BrowseFeed({
                         label="Max Multiple"
                         value={maxMultiple}
                         options={MULTIPLE_OPTIONS}
-                        onChange={setMaxMultiple}
+                        onChange={(val) => {
+                            setMaxMultiple(val);
+                            updateUrl({ maxMultiple: val });
+                        }}
                     />
 
                     {/* Growth (30d) */}
@@ -485,11 +512,11 @@ export function BrowseFeed({
                         <label style={{ fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 10, opacity: 0.7 }}>Growth (30d)</label>
                         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 12 }}>
                             <div style={fieldShellStyle}>
-                                <input type="number" placeholder="Min" value={minGrowth} onChange={e => setMinGrowth(e.target.value)} style={fieldInputStyle} />
+                                <input type="number" placeholder="Min" value={minGrowth} onChange={e => handleNumericFilterChange("minGrowth", e.target.value, setMinGrowth)} style={fieldInputStyle} />
                                 <span style={{ fontSize: 13, color: "var(--color-secondary)", marginLeft: 4 }}>%</span>
                             </div>
                             <div style={fieldShellStyle}>
-                                <input type="number" placeholder="Max" value={maxGrowth} onChange={e => setMaxGrowth(e.target.value)} style={fieldInputStyle} />
+                                <input type="number" placeholder="Max" value={maxGrowth} onChange={e => handleNumericFilterChange("maxGrowth", e.target.value, setMaxGrowth)} style={fieldInputStyle} />
                                 <span style={{ fontSize: 13, color: "var(--color-secondary)", marginLeft: 4 }}>%</span>
                             </div>
                         </div>
@@ -518,7 +545,7 @@ export function BrowseFeed({
             <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
                     <p style={{ fontSize: 14, color: "var(--color-secondary)", fontWeight: 500 }}>
-                        {filteredStartups.length === 0 ? "No startups found" : `Showing ${displayedStartups.length} of ${filteredStartups.length} startups`}
+                        {startups.length === 0 ? "No startups found" : `Showing ${startups.length} of ${totalCount} startups`}
                     </p>
                     <FrictionlessAddWrapper className="btn btn-primary btn-sm" text="List your startup" />
                 </div>
@@ -538,14 +565,14 @@ export function BrowseFeed({
                                 const rawMrr = s.snap?.mrr ?? s.monthly_revenue;
                                 const mrr = typeof rawMrr === "string" ? parseFloat(rawMrr) : (rawMrr || 0);
 
-                                const rawArr = s.snap?.all_time_revenue ?? s.revenue_30d;
+                                const rawArr = s.snap?.arr || s.snap?.all_time_revenue || 0;
                                 const arr = typeof rawArr === "string" ? parseFloat(rawArr) : (rawArr || 0);
 
                                 const rawGrowth = s.snap?.growth_rate ?? s.growth_rate;
                                 const growth = typeof rawGrowth === "string" ? parseFloat(rawGrowth) : (rawGrowth || 0);
 
                                 return (
-                                    <Link key={s.id} href={`/startup/${s.id}`} style={{ textDecoration: "none", display: "block" }}>
+                                    <Link key={s.id} href={`/startup/${s.slug || s.id}`} style={{ textDecoration: "none", display: "block" }}>
                                         <div className="card card-hover" style={{ padding: "24px", display: "flex", alignItems: "center", gap: 24, minHeight: 146, position: "relative", overflow: "hidden" }}>
                                             {/* Premium subtle gradient background for verified */}
                                             {s.is_verified && (
@@ -567,9 +594,19 @@ export function BrowseFeed({
 
                                             {/* Info */}
                                             <div style={{ flex: 1, minWidth: 0 }}>
-                                                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-                                                    <p style={{ fontWeight: 700, fontSize: 18, color: "var(--color-text)", margin: 0, filter: s.is_anonymous ? "blur(5px)" : "none", letterSpacing: "-0.02em" }}>{s.name}</p>
-                                                    {s.is_listed_for_sale && <StatusBadge status={s.sale_status ?? "sale"} />}
+                                                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8, overflow: "hidden" }}>
+                                                    <p style={{ 
+                                                        fontWeight: 700, 
+                                                        fontSize: 18, 
+                                                        color: "var(--color-text)", 
+                                                        margin: 0, 
+                                                        filter: s.is_anonymous ? "blur(5px)" : "none", 
+                                                        letterSpacing: "-0.02em", 
+                                                        overflow: "hidden", 
+                                                        textOverflow: "ellipsis", 
+                                                        whiteSpace: "nowrap" 
+                                                    }}>{s.name}</p>
+                                                    {s.is_listed_for_sale && <div style={{ flexShrink: 0 }}><StatusBadge status={s.sale_status ?? "sale"} /></div>}
                                                 </div>
                                                 <p style={{ fontSize: 14, color: "var(--color-secondary)", margin: 0, opacity: 0.8, lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                                                     {s.category && <span style={{ fontWeight: 600, color: "var(--color-text)", opacity: 0.7 }}>{s.category} · </span>}{s.description ?? "No description provided"}
@@ -602,16 +639,16 @@ export function BrowseFeed({
                                             <div style={{ display: "flex", gap: 32, flexShrink: 0, paddingLeft: 32, borderLeft: "1px solid var(--color-border)", minWidth: 220 }}>
                                                 <div style={{ textAlign: "right", flex: 1 }}>
                                                     <p className="metric-label" style={{ marginBottom: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", color: "var(--color-secondary)", textTransform: "uppercase" }}>MRR</p>
-                                                    <p style={{ fontWeight: 800, fontSize: 18, color: "var(--color-text)", margin: 0 }}>{(mrr > 0 || arr > 0) ? fmtMoney(mrr) : "—"}</p>
+                                                    <p style={{ fontWeight: 800, fontSize: 18, color: "var(--color-text)", margin: 0 }}>{s.is_verified || mrr > 0 ? fmtMoney(mrr) : "—"}</p>
                                                     {growth > 0 && (
                                                         <p style={{ fontSize: 11, color: "#10b981", fontWeight: 600, margin: "2px 0 0" }}>+{parseFloat(growth as any).toFixed(1)}%</p>
                                                     )}
                                                 </div>
                                                 <div style={{ textAlign: "right", flex: 1 }}>
-                                                    <p className="metric-label" style={{ marginBottom: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", color: "var(--color-secondary)", textTransform: "uppercase" }}>ARR</p>
-                                                    <p style={{ fontWeight: 800, fontSize: 18, color: "var(--color-text)", margin: 0 }}>{(mrr > 0 || arr > 0) ? fmtMoney(arr) : "—"}</p>
-                                                    {s.asking_price && mrr > 0 && (
-                                                        <p style={{ fontSize: 11, color: "var(--color-secondary)", fontWeight: 500, margin: "2px 0 0" }}>{fmtMultiple(s.asking_price, mrr)} sub</p>
+                                                    <p className="metric-label" style={{ marginBottom: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", color: "var(--color-secondary)", textTransform: "uppercase" }}>ATR</p>
+                                                    <p style={{ fontWeight: 800, fontSize: 18, color: "var(--color-text)", margin: 0 }}>{s.is_verified || (s.snap?.all_time_revenue ?? 0) > 0 ? fmtMoney(s.snap?.all_time_revenue || 0) : "—"}</p>
+                                                    {s.asking_price && (arr || mrr) && (
+                                                        <p style={{ fontSize: 11, color: "var(--color-secondary)", fontWeight: 500, margin: "2px 0 0" }}>{fmtMultiple(Number(s.asking_price), arr || (mrr * 12))} multiplier</p>
                                                     )}
                                                 </div>
                                             </div>
@@ -622,10 +659,11 @@ export function BrowseFeed({
                         </div>
 
                         {/* Load More Button */}
-                        {visibleItems < filteredStartups.length && (
+                        {startups.length < totalCount && (
                             <div style={{ display: "flex", justifyContent: "center", marginTop: 32, paddingBottom: 40 }}>
                                 <button
-                                    onClick={() => setVisibleItems(prev => prev + 50)}
+                                    onClick={handleLoadMore}
+                                    disabled={loadingMore}
                                     className="btn btn-secondary"
                                     style={{
                                         padding: "12px 32px",
@@ -635,12 +673,13 @@ export function BrowseFeed({
                                         background: "var(--color-surface-strong)",
                                         border: "1px solid var(--color-border)",
                                         color: "var(--color-text)",
-                                        cursor: "pointer",
+                                        cursor: loadingMore ? "default" : "pointer",
                                         transition: "all 0.2s ease",
-                                        boxShadow: "var(--shadow-card)"
+                                        boxShadow: "var(--shadow-card)",
+                                        opacity: loadingMore ? 0.6 : 1
                                     }}
                                 >
-                                    Load more startups ({filteredStartups.length - visibleItems} remaining)
+                                    {loadingMore ? "Loading..." : `Load more startups (${totalCount - startups.length} remaining)`}
                                 </button>
                             </div>
                         )}

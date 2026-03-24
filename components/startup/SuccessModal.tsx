@@ -5,7 +5,15 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 
-export function SuccessModal({ isOpen, onClose, startupId, claimToken }: { isOpen: boolean; onClose: () => void; startupId: string; claimToken: string | null }) {
+interface SuccessModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    startupId: string;
+    slug?: string | null;
+    claimToken: string | null;
+}
+
+export function SuccessModal({ isOpen, onClose, startupId, slug, claimToken }: SuccessModalProps) {
     const [copied, setCopied] = useState(false);
     const [mounted, setMounted] = useState(false);
 
@@ -85,13 +93,30 @@ export function SuccessModal({ isOpen, onClose, startupId, claimToken }: { isOpe
                 </p>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    <Link href={`/startup/${startupId}`} className="btn btn-primary" style={{ padding: "14px 24px", fontSize: 16 }}>
+                    <Link 
+                        href={`/startup/${slug || startupId}`} 
+                        className="btn btn-primary" 
+                        style={{ 
+                            padding: "14px 24px", 
+                            fontSize: 16,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 10,
+                            background: "linear-gradient(135deg, #7da2ff 0%, #5b7cff 45%, #4465f5 100%)",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 18,
+                            fontWeight: 800,
+                            textDecoration: "none"
+                        }}
+                    >
                         <ExternalLink size={18} />
                         View live listing
                     </Link>
 
-                    {claimToken ? (
-                        <div style={{ background: "linear-gradient(180deg, rgba(214,223,230,0.1), rgba(96,103,109,0.06) 18%, rgba(20,21,20,0.76) 62%, rgba(13,14,13,0.9))", padding: "24px", borderRadius: 18, marginTop: 12, textAlign: "left", border: "1px solid rgba(224,232,239,0.16)", boxShadow: "0 18px 34px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.14)" }}>
+                    {claimToken && (
+                        <div style={{ background: "rgba(255,255,255,0.03)", padding: "24px", borderRadius: 18, marginTop: 12, textAlign: "left", border: "1px solid rgba(224,232,239,0.1)", boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                                 <Briefcase size={18} color="#8eaaff" />
                                 <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--color-text)" }}>Save your claim link</h3>
@@ -105,22 +130,33 @@ export function SuccessModal({ isOpen, onClose, startupId, claimToken }: { isOpe
                                     type="text"
                                     readOnly
                                     value={claimUrl!}
-                                    className="form-input"
-                                    style={{ fontSize: 12, background: "linear-gradient(180deg, rgba(214,223,230,0.08), rgba(92,98,103,0.04) 16%, rgba(20,21,20,0.78) 62%, rgba(13,14,13,0.92))", border: "1px solid rgba(224,232,239,0.14)", color: "var(--color-text)", borderRadius: 12, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.09)" }}
+                                    style={{ 
+                                        flex: 1,
+                                        fontSize: 12, 
+                                        padding: "10px 14px",
+                                        background: "rgba(0,0,0,0.2)", 
+                                        border: "1px solid rgba(224,232,239,0.1)", 
+                                        color: "var(--color-text)", 
+                                        borderRadius: 12,
+                                        outline: "none"
+                                    }}
                                 />
                                 <button
                                     onClick={copyClaimLink}
                                     className="btn btn-secondary"
-                                    style={{ padding: "0 16px", flexShrink: 0, minWidth: 88 }}
+                                    style={{ 
+                                        padding: "0 16px", 
+                                        flexShrink: 0, 
+                                        minWidth: 88,
+                                        height: 38,
+                                        fontSize: 13,
+                                        fontWeight: 700
+                                    }}
                                 >
                                     {copied ? "Copied!" : <LinkIcon size={16} />}
                                 </button>
                             </div>
                         </div>
-                    ) : (
-                        <Link href="/dashboard" className="btn btn-secondary" style={{ padding: "14px 24px", fontSize: 16 }}>
-                            Go to Dashboard
-                        </Link>
                     )}
                 </div>
             </div>

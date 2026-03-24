@@ -16,7 +16,7 @@ async function simulateWebhook(startupId) {
     const { error } = await supabase
         .from("startups")
         .update({ 
-            listing_fee_paid: true,
+            listing_paid: true,
             is_listed_for_sale: true
         })
         .eq("id", startupId);

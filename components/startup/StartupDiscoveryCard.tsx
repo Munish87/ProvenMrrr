@@ -14,6 +14,7 @@ type StartupBase = {
     is_anonymous?: boolean;
     created_at: string;
     sale_status?: StartupSaleStatus | null;
+    slug?: string | null;
     asking_price?: number | null;
 };
 
@@ -40,7 +41,7 @@ export function StartupDiscoveryCard({ s, snap }: { s: StartupBase; snap?: SnapB
 
     const metrics = [
         { label: "MRR", value: snap ? fmtMoney(snap.mrr) : "-" },
-        { label: "ARR", value: snap ? fmtMoney(snap.arr ?? (snap.mrr * 12)) : "-" },
+        { label: "ATR", value: (snap && snap.all_time_revenue !== undefined) ? fmtMoney(snap.all_time_revenue) : "-" },
         { label: "MULTIPLE", value: (s.asking_price && snap?.mrr) ? fmtMultiple(s.asking_price, snap.mrr) : "-" }
     ];
 
@@ -84,7 +85,7 @@ export function StartupDiscoveryCard({ s, snap }: { s: StartupBase; snap?: SnapB
 
     return (
         <Link
-            href={`/startup/${s.id}`}
+            href={`/startup/${s.slug || s.id}`}
             className={`card card-hover sc-card${saleStatus ? " sc-card-status" : ""}`}
             style={{
                 textDecoration: "none",
@@ -117,7 +118,7 @@ export function StartupDiscoveryCard({ s, snap }: { s: StartupBase; snap?: SnapB
                             border: "1px solid rgba(255,255,255,0.08)",
                         }}
                     >
-                        <Image src={s.logo_url} alt={s.name} fill className="object-cover" unoptimized />
+                        <Image src={s.logo_url} alt={s.name} fill className="object-cover" unoptimized priority={false} />
                     </div>
                 ) : (
                     <div

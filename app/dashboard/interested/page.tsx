@@ -76,7 +76,7 @@ export default function InterestedPage() {
                         {startups.map((match) => {
                             const { startup, snapshot, score } = match;
                             return (
-                                <Link key={startup.id} href={`/startup/${startup.id}`} style={{ textDecoration: "none", display: "block" }}>
+                                <Link key={startup.id} href={`/startup/${startup.slug || startup.id}`} style={{ textDecoration: "none", display: "block" }}>
                                     <div style={{
                                         display: "flex",
                                         alignItems: "center",

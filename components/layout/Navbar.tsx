@@ -15,7 +15,10 @@ export function Navbar({ user }: NavbarProps) {
     <header className="site-header">
       <div className="site-header-inner">
         <Link href="/" className="site-logo">
-          <div className="site-logo-dot" />
+          <div className="site-logo-icon">
+            <img src="/logo-black.png" alt="ProvenMRR" className="logo-dark" loading="lazy" />
+            <img src="/logo-white.png" alt="ProvenMRR" className="logo-light" loading="lazy" />
+          </div>
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
             <span>ProvenMRR</span>
             <span style={{ fontSize: 10, fontWeight: 600, color: "var(--color-secondary)", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 4 }}>

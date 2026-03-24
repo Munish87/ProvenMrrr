@@ -50,7 +50,7 @@ export function ListingToggle({ id, name, initialValue, initialHasPaidListing, o
                 },
                 (payload) => {
                     const updatedStartup = payload.new as any;
-                    if (updatedStartup.listing_fee_paid) {
+                    if (updatedStartup.listing_paid) {
                         setHasPaidListing(true);
                         setIsListed(updatedStartup.is_listed_for_sale);
                         if (typeof window !== "undefined") {

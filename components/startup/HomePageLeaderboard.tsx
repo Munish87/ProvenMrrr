@@ -73,8 +73,8 @@ export function HomePageLeaderboard({ initialEntries }: { initialEntries: LBEntr
             </div>
 
             {/* Table Area */}
-            <div className="lb-container" style={{ padding: 0, height: "auto", overflow: "visible" }}>
-                <table className="data-table">
+            <div className="lb-container" style={{ padding: 0, height: "auto", overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch", paddingBottom: "6px" }}>
+                <table className="data-table" style={{ minWidth: "650px" }}>
                     <thead>
                         <tr>
                             <th style={{ width: 40, textAlign: "center" }}>#</th>
@@ -112,7 +112,7 @@ export function HomePageLeaderboard({ initialEntries }: { initialEntries: LBEntr
                                             )}
                                         </td>
                                         <td>
-                                            <Link href={`/startup/${entry.startup_id}`} style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
+                                            <Link href={`/startup/${startup.slug || entry.startup_id}`} style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
                                                 <div
                                                     className="startup-card-logo"
                                                     style={{
@@ -134,6 +134,7 @@ export function HomePageLeaderboard({ initialEntries }: { initialEntries: LBEntr
                                                         <img
                                                             src={startup.logo_url}
                                                             alt={startup.name}
+                                                            loading="lazy"
                                                             style={{ width: "100%", height: "100%", objectFit: "cover" }}
                                                         />
                                                     ) : (
@@ -149,20 +150,21 @@ export function HomePageLeaderboard({ initialEntries }: { initialEntries: LBEntr
                                             </Link>
                                         </td>
                                         <td>
-                                            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--color-secondary)" }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--color-secondary)", overflow: "hidden" }}>
                                                 {startup.founder_avatar_url && !startup.is_anonymous && (
                                                     <img
                                                         src={startup.founder_avatar_url}
                                                         alt={startup.founder_name || "Founder"}
-                                                        style={{ width: 20, height: 20, borderRadius: "50%", objectFit: "cover" }}
+                                                        loading="lazy"
+                                                        style={{ width: 20, height: 20, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
                                                     />
                                                 )}
                                                 {startup.founder_name ? (
-                                                    <span style={{ color: "var(--color-text)", filter: startup.is_anonymous ? "blur(5px)" : "none" }}>
+                                                    <span style={{ color: "var(--color-text)", filter: startup.is_anonymous ? "blur(5px)" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                                         {startup.founder_name}
                                                     </span>
                                                 ) : startup.founder_handle ? (
-                                                    <span style={{ filter: startup.is_anonymous ? "blur(5px)" : "none" }}>@{startup.founder_handle}</span>
+                                                    <span style={{ filter: startup.is_anonymous ? "blur(5px)" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>@{startup.founder_handle}</span>
                                                 ) : "—"}
                                             </div>
                                         </td>

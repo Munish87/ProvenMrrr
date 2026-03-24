@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { ThemeController } from "@/components/theme/ThemeController";
-import { GoogleAnalytics } from "@next/third-parties/google";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
+import { DeferredAnalytics } from "@/components/providers/DeferredAnalytics";
 
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
 
@@ -67,6 +68,13 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "https://provenmrr.com",
   },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", type: "image/png", sizes: "32x32" },
+    ],
+    apple: "/icon.png",
+  },
 };
 
 import { FloatingNav } from "@/components/layout/FloatingNav";
@@ -79,8 +87,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const gaId = process.env.NEXT_PUBLIC_GA_ID;
-
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning data-theme="dark">
       <head>
@@ -90,16 +96,31 @@ export default function RootLayout({
               "try{var t=localStorage.getItem('provenmrr-theme');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t;}}catch(e){}",
           }}
         />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "ProvenMRR",
+              "url": "https://provenmrr.com",
+              "logo": "https://provenmrr.com/icon.png",
+              "sameAs": ["https://x.com/provenmrr"],
+              "description": "Verified startup revenue database and marketplace for founders and investors.",
+            }),
+          }}
+        />
       </head>
-      <body className="antialiased" suppressHydrationWarning style={{ backgroundColor: "var(--color-bg)", display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <body className="antialiased" suppressHydrationWarning style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         <div
           aria-hidden="true"
+          className="theme-overlay"
           style={{
             position: "fixed",
             inset: 0,
             pointerEvents: "none",
             zIndex: -1,
-            background: "var(--app-shell-overlay)",
+            background: "var(--app-shell-overlay, transparent)",
           }}
         />
         <AuthProvider>
@@ -110,8 +131,9 @@ export default function RootLayout({
           <FloatingNav />
         </AuthProvider>
         <ThemeController />
-        {gaId && <GoogleAnalytics gaId={gaId} />}
         <Analytics />
+        <SpeedInsights />
+        <DeferredAnalytics />
       </body>
     </html>
   );

@@ -51,7 +51,7 @@ export function FullLeaderboard({ initialEntries }: { initialEntries: LBEntry[] 
                                 updatedEntries[index] = {
                                     ...updatedEntries[index],
                                     mrr: newSnap.mrr,
-                                    arr: newSnap.all_time_revenue,
+                                    arr: newSnap.arr || (newSnap.mrr * 12),
                                     growth_rate: newSnap.growth_rate
                                 };
                                 return updatedEntries;
@@ -137,16 +137,16 @@ export function FullLeaderboard({ initialEntries }: { initialEntries: LBEntry[] 
                 }}
             >
                 {/* Table wrapper */}
-                <div style={{ overflowX: "visible" }}>
-                    <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "separate", borderSpacing: "0 10px" }}>
+                <div style={{ overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" }}>
+                    <table style={{ width: "100%", minWidth: "850px", borderCollapse: "separate", borderSpacing: "0 10px" }}>
                     <thead>
                         <tr>
-                            <th style={{ padding: "0 20px", textAlign: "center", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6, width: "5%" }}>#</th>
-                            <th style={{ padding: "0 20px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6, width: "28%" }}>Startup</th>
-                            <th style={{ padding: "0 20px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6, width: "18%" }}>Founder</th>
-                            <th style={{ padding: "0 20px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6, width: "26%" }}>{view.toUpperCase()}</th>
-                            <th style={{ padding: "0 20px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6, width: "12%" }}>MULTIPLE</th>
-                            <th style={{ padding: "0 20px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6, width: "13%" }}>MoM Growth</th>
+                            <th style={{ padding: "0 20px", textAlign: "center", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6, width: 40 }}>#</th>
+                            <th style={{ padding: "0 20px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6 }}>Startup</th>
+                            <th style={{ padding: "0 20px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6 }}>Founder</th>
+                            <th style={{ padding: "0 20px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6 }}>{view.toUpperCase()}</th>
+                            <th style={{ padding: "0 20px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6 }}>MULTIPLE</th>
+                            <th style={{ padding: "0 20px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--color-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.6 }}>MoM Growth</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -190,7 +190,7 @@ export function FullLeaderboard({ initialEntries }: { initialEntries: LBEntry[] 
                                             borderTop: "1px solid var(--color-border)",
                                             borderBottom: "1px solid var(--color-border)"
                                         }}>
-                                            <Link href={`/startup/${entry.startup_id}`} style={{ display: "flex", alignItems: "center", gap: 16, textDecoration: "none" }}>
+                                            <Link href={`/startup/${startup.slug || entry.startup_id}`} style={{ display: "flex", alignItems: "center", gap: 16, textDecoration: "none" }}>
                                                 <div
                                                     style={{
                                                         width: 40,
@@ -250,20 +250,20 @@ export function FullLeaderboard({ initialEntries }: { initialEntries: LBEntry[] 
                                             borderTop: "1px solid var(--color-border)",
                                             borderBottom: "1px solid var(--color-border)"
                                         }}>
-                                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden" }}>
                                                 {startup.founder_avatar_url && (
                                                     <img
                                                         src={startup.founder_avatar_url}
                                                         alt={startup.founder_name || "Founder"}
-                                                        style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }}
+                                                        style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
                                                     />
                                                 )}
                                                 {startup.founder_name ? (
-                                                    <span style={{ color: "var(--color-text)", opacity: 0.9 }}>
+                                                    <span style={{ color: "var(--color-text)", opacity: 0.9, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                                         {startup.founder_name}
                                                     </span>
                                                 ) : startup.founder_handle ? (
-                                                    <span style={{ opacity: 0.8 }}>@{startup.founder_handle}</span>
+                                                    <span style={{ opacity: 0.8, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>@{startup.founder_handle}</span>
                                                 ) : "—"}
                                             </div>
                                         </td>
@@ -292,8 +292,8 @@ export function FullLeaderboard({ initialEntries }: { initialEntries: LBEntry[] 
                                             borderTop: "1px solid var(--color-border)",
                                             borderBottom: "1px solid var(--color-border)"
                                         }}>
-                                            {(startup?.asking_price && entry.mrr)
-                                                ? `${(startup.asking_price / (entry.mrr * 12)).toFixed(1)}x`
+                                            {(startup?.asking_price && (entry.arr || entry.mrr))
+                                                ? `${(startup.asking_price / (entry.arr || (entry.mrr * 12))).toFixed(1)}x`
                                                 : "—"}
                                         </td>
                                         <td style={{

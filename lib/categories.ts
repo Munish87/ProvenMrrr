@@ -1,4 +1,5 @@
-export function slugify(text: string) {
+export function slugify(text: any) {
+    if (!text) return "";
     return text
         .toString()
         .toLowerCase()

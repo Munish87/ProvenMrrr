@@ -22,7 +22,7 @@ export function computeMetrics(data: RawStripeData): ComputedMetrics {
 
     // ─── MRR ────────────────────────────────────────────────────────────────────
     // Sum active subscription amounts based on strict interval evaluations (normalized to monthly)
-    const mrr = subscriptions.reduce((sum, sub) => {
+    let mrr = subscriptions.reduce((sum, sub) => {
         if (sub.status !== "active" && sub.status !== "trialing") return sum;
         if (!sub.items?.data?.length || !sub.items.data[0].price) return sum;
 
@@ -43,7 +43,7 @@ export function computeMetrics(data: RawStripeData): ComputedMetrics {
         return sum + (subMrr / 100); // cents -> dollars
     }, 0);
 
-    const arr = mrr * 12;
+    
 
     // ─── CHURN ──────────────────────────────────────────────────────────────────
     const now = Math.floor(Date.now() / 1000);
@@ -115,17 +115,41 @@ export function computeMetrics(data: RawStripeData): ComputedMetrics {
 
     // ─── CUSTOMER COUNT ─────────────────────────────────────────────────────────
     const uniqueCustomers = new Set();
+    
+    // 1. Active subscribers
     for (const sub of subscriptions) {
-        if (sub.customer) {
-            uniqueCustomers.add(typeof sub.customer === "string" ? sub.customer : sub.customer.id);
+        if (sub.status === "active" || sub.status === "trialing") {
+            if (sub.customer) {
+                uniqueCustomers.add(typeof sub.customer === "string" ? sub.customer : sub.customer.id);
+            }
         }
     }
+
+    // 2. Recent one-time buyers (last 30 days)
+    for (const charge of charges) {
+        if (charge.status === "succeeded" && charge.created >= thirtyDaysAgo) {
+            if (charge.customer) {
+                uniqueCustomers.add(typeof charge.customer === "string" ? charge.customer : charge.customer.id);
+            } else if (charge.billing_details?.email) {
+                // Fallback to email if no customer ID exists
+                uniqueCustomers.add(charge.billing_details.email);
+            }
+        }
+    }
+
     const customerCount = uniqueCustomers.size;
 
     // ─── VOLATILITY: coefficient of variation of monthly revenue ────────────────
     const revenueByMonth = buildMonthlyRevenue(charges);
     const mrrValues = revenueByMonth.map((m) => m.revenue);
     const volatilityScore = computeVolatility(mrrValues);
+
+    // Fallback for one-time payment businesses: if true MRR is exactly 0 but they have recent revenue, use 30d revenue
+    if (mrr === 0 && thisMonthRevenue > 0) {
+        mrr = thisMonthRevenue;
+    }
+    
+    const arr = mrr * 12;
 
     return {
         mrr,
@@ -146,40 +170,46 @@ export function computeMetrics(data: RawStripeData): ComputedMetrics {
 function buildMonthlyRevenue(
     charges: RawStripeData["charges"]
 ): { month: string; revenue: number; date: string }[] {
-    const aggregated: Record<string, number> = {};
-    const dateMapping: Record<string, string> = {};
+    if (charges.length === 0) {
+        const now = new Date();
+        const res = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            res.push({ 
+                month: d.toLocaleString("en-US", { month: "short" }), 
+                revenue: 0, 
+                date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01` 
+            });
+        }
+        return res;
+    }
 
     const sortedCharges = [...charges].sort((a, b) => a.created - b.created);
+    const firstChargeDate = new Date(sortedCharges[0].created * 1000);
+    const now = new Date();
+    
+    const result: { month: string; revenue: number; date: string }[] = [];
+    
+    // Iterate month-by-month from first charge to today
+    let iter = new Date(firstChargeDate.getFullYear(), firstChargeDate.getMonth(), 1);
+    while (iter <= now) {
+        const label = iter.toLocaleString("en-US", { month: "short" });
+        const dateString = `${iter.getFullYear()}-${String(iter.getMonth() + 1).padStart(2, "0")}-01`;
+        result.push({ month: label, revenue: 0, date: dateString });
+        iter.setMonth(iter.getMonth() + 1);
+    }
 
     sortedCharges.forEach((charge) => {
         if (charge.status !== "succeeded") return;
-
         const d = new Date(charge.created * 1000);
         const label = d.toLocaleString("en-US", { month: "short" });
-        const dateString = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
-
-        if (aggregated[label] === undefined) {
-            aggregated[label] = 0;
-            dateMapping[label] = dateString;
+        const yr = d.getFullYear();
+        
+        const entry = result.find(r => r.month === label && new Date(r.date).getFullYear() === yr);
+        if (entry) {
+            entry.revenue += charge.amount / 100;
         }
-
-        const amount = charge.amount / 100;
-        aggregated[label] += amount;
     });
-
-    const result: { month: string; revenue: number; date: string }[] = [];
-    for (const [month, revenue] of Object.entries(aggregated)) {
-        result.push({ month, revenue, date: dateMapping[month] });
-    }
-
-    if (result.length === 0) {
-        const now = new Date();
-        for (let i = 5; i >= 0; i--) {
-            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const label = d.toLocaleString("en-US", { month: "short" });
-            result.push({ month: label, revenue: 0, date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01` });
-        }
-    }
 
     return result;
 }
