@@ -19,10 +19,30 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { startupId } = await req.json();
+        const { startupId, currency: requestedCurrency = "usd" } = await req.json();
+        console.log(`[Stripe Checkout] Requested currency: ${requestedCurrency} for startup: ${startupId}`);
 
         if (!startupId) {
             return NextResponse.json({ error: "Startup ID is required" }, { status: 400 });
+        }
+
+        // Pricing logic: Match frontend detection
+        const currency = (requestedCurrency as string).toLowerCase();
+        let unitAmount = 100; // Default $1.00 (100 cents)
+        let stripeCurrency = "usd";
+
+        if (currency === "inr") {
+            unitAmount = 10000; // ₹100.00 (10000 paise)
+            stripeCurrency = "inr";
+        } else if (currency === "cad") {
+            unitAmount = 140; // $1.40 CAD
+            stripeCurrency = "cad";
+        } else if (currency === "eur") {
+            unitAmount = 95; // €0.95
+            stripeCurrency = "eur";
+        } else if (currency === "gbp") {
+            unitAmount = 80; // £0.80
+            stripeCurrency = "gbp";
         }
 
         // Verify ownership
@@ -48,38 +68,45 @@ export async function POST(req: NextRequest) {
 
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
+            billing_address_collection: "required",
+            phone_number_collection: { enabled: true },
+            customer_email: user.email ?? undefined,
             line_items: [
                 {
                     price_data: {
-                        currency: "usd",
+                        currency: stripeCurrency,
                         product_data: {
                             name: `ProvenMRR Listing Fee`,
                             description: `List "${startupData.name}" in the marketplace for sale. Priority placement for 30 days.`,
-                            images: [],
                         },
-                        unit_amount: 50, // $0.50
+                        unit_amount: unitAmount,
                     },
                     quantity: 1,
                 },
             ],
             mode: "payment",
-            success_url: `${appUrl}/dashboard/startups?id=${startupId}&payment=success&session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${appUrl}/dashboard/startups?id=${startupId}&payment=cancel`,
-            customer_email: user.email,
+            success_url: `${appUrl}/startup/${startupId}?payment=success&id=${startupId}`,
+            cancel_url: `${appUrl}/dashboard/startups?id=${startupId}`,
             metadata: {
-                startup_id: startupId,
-                user_id: user.id,
+                startupId: startupId,
+                userId: user.id,
                 type: "listing_fee",
             },
         });
 
-        return NextResponse.json({ url: session.url, sessionId: session.id });
+        return NextResponse.json({ url: session.url });
     } catch (err: any) {
-        console.error("[Stripe Checkout Error]:", err?.message, err?.code, err?.type);
+        const errorMessage = err?.message || "Unknown error";
+        const errorStack = err?.stack || "";
+        const errorDetail = JSON.stringify(err, null, 2);
+
+        console.error("[Stripe Checkout Error]:", errorMessage, errorDetail);
+
+        // Return detailed error for debugging temporarily
         return NextResponse.json({
-            error: err.message,
-            code: err?.code,
-            type: err?.type,
+            error: errorMessage,
+            details: errorDetail,
+            stack: errorStack
         }, { status: 500 });
     }
 }

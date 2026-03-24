@@ -15,6 +15,30 @@ interface ListingPlanModalProps {
 export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startupName }: ListingPlanModalProps) {
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [currency, setCurrency] = useState("usd");
+    const [priceDisplay, setPriceDisplay] = useState("$1");
+
+    useEffect(() => {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const offset = new Date().getTimezoneOffset();
+        const locale = typeof window !== "undefined" ? window.navigator.language : "";
+        
+        console.log(`[Currency Detection] TZ: ${tz}, Offset: ${offset}, Locale: ${locale}`);
+
+        if (tz.includes("Asia/Calcutta") || tz.includes("Asia/Kolkata") || tz.includes("India") || offset === -330 || locale === "en-IN" || locale === "hi-IN") {
+            setCurrency("inr");
+            setPriceDisplay("₹100");
+        } else if (tz.includes("Canada")) {
+            setCurrency("cad");
+            setPriceDisplay("$1.40");
+        } else if (tz.includes("Europe") || tz.includes("Paris") || tz.includes("Berlin") || tz.includes("London")) {
+            setCurrency(tz.includes("London") ? "gbp" : "eur");
+            setPriceDisplay(tz.includes("London") ? "£0.80" : "€0.95");
+        } else {
+            setCurrency("usd");
+            setPriceDisplay("$1.00");
+        }
+    }, [isOpen]);
 
     useEffect(() => {
         if (!isOpen) {
@@ -33,8 +57,21 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
     }, [isOpen, startupId, onConfirm]);
 
     const handleProceedToPayment = useCallback(async () => {
+        if (isProcessing) return;
         setIsProcessing(true);
         setError(null);
+
+        // Final check for currency if it's still default
+        let finalCurrency = currency;
+        if (finalCurrency === "usd") {
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const offset = new Date().getTimezoneOffset();
+            const locale = typeof window !== "undefined" ? window.navigator.language : "";
+            if (tz.includes("Asia") || tz.includes("Kolkata") || tz.includes("Calcutta") || offset === -330 || locale.includes("IN")) {
+                finalCurrency = "inr";
+            }
+        }
+
         try {
             const res = await fetch("/api/stripe/checkout", {
                 method: "POST",
@@ -57,7 +94,7 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
             setError(err.message || "Could not initialize secure checkout. Please try again.");
             setIsProcessing(false);
         }
-    }, [startupId]);
+    }, [startupId, currency]);
 
     if (!isOpen) return null;
 
@@ -152,7 +189,7 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
                         }}>
                             <p style={{ fontSize: 11, fontWeight: 800, color: "#818cf8", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 8 }}>ProvenMRR Pro Listing</p>
                             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 6 }}>
-                                <span style={{ fontSize: 48, fontWeight: 900, color: "var(--color-text)", letterSpacing: "-0.04em" }}>$0.50</span>
+                                <span style={{ fontSize: 48, fontWeight: 900, color: "var(--color-text)", letterSpacing: "-0.04em" }}>{priceDisplay}</span>
                                 <span style={{ fontSize: 16, fontWeight: 600, color: "var(--color-secondary)" }}>one-time</span>
                             </div>
                             <p style={{ fontSize: 12, color: "var(--color-secondary)", margin: "8px 0 0", opacity: 0.7 }}>Secure payment via Stripe</p>
@@ -195,7 +232,7 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
                             ) : (
                                 <>
                                     <ExternalLink size={18} />
-                                    Pay $0.50 &amp; List Startup
+                                    Pay {priceDisplay} &amp; List Startup
                                 </>
                             )}
                         </button>

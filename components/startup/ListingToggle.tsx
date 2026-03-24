@@ -18,6 +18,25 @@ export function ListingToggle({ id, name, initialValue, initialHasPaidListing, o
     const [hasPaidListing, setHasPaidListing] = useState(initialHasPaidListing);
     const [showModal, setShowModal] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [priceDisplay, setPriceDisplay] = useState("$1.00");
+
+    useEffect(() => {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const offset = new Date().getTimezoneOffset();
+        const locale = typeof window !== "undefined" ? window.navigator.language : "";
+
+        console.log(`[Currency Detection Toggle] TZ: ${tz}, Offset: ${offset}, Locale: ${locale}`);
+
+        if (tz.includes("Asia") || tz.includes("Kolkata") || tz.includes("Calcutta") || offset === -330 || locale.includes("IN")) {
+            setPriceDisplay("₹100");
+        } else if (tz.includes("Canada")) {
+            setPriceDisplay("$1.40");
+        } else if (tz.includes("Europe") || tz.includes("Paris") || tz.includes("Berlin") || tz.includes("London")) {
+            setPriceDisplay(tz.includes("London") ? "£0.80" : "€0.95");
+        } else {
+            setPriceDisplay("$1.00");
+        }
+    }, []);
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -133,7 +152,7 @@ export function ListingToggle({ id, name, initialValue, initialHasPaidListing, o
                         <Zap size={20} fill={isListed ? "white" : "none"} />
                     </div>
                     <div>
-                        <p style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text)", margin: 0 }}>List for Sale ($0.10)</p>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text)", margin: 0 }}>List for Sale ({priceDisplay})</p>
                         <p style={{ fontSize: 12, color: isListed ? "color-mix(in srgb, #10b981 58%, var(--color-text))" : "var(--color-secondary)", margin: "2px 0 0" }}>
                             {isListed ? "Currently active in marketplace" : "One-time payment to reach buyers"}
                         </p>

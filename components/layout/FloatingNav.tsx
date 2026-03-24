@@ -53,7 +53,14 @@ export function FloatingNav() {
         transition: "opacity 0.3s ease"
       }}
     >
-      <div className="floating-nav-indicator" aria-hidden="true" />
+      <div 
+        className="floating-nav-indicator" 
+        aria-hidden="true"
+        style={{
+          width: `calc((100% - 20px - ${(navItems.length - 1) * 4}px) / ${navItems.length})`,
+          transform: `translateX(calc(var(--active-index, 0) * 100% + var(--active-index, 0) * 4px))`
+        }}
+      />
       {navItems.map((item) => {
         const isActive = isItemActive(pathname, item.name, item.href);
         const Icon = item.icon;
@@ -84,7 +91,7 @@ export function FloatingNav() {
             }}
           >
             <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
-            <span className="floating-nav-label" style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", opacity: isActive ? 1 : 0.78, textAlign: "center", lineHeight: 1.05, whiteSpace: "nowrap" }}>
+            <span className="floating-nav-label" style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.02em", opacity: isActive ? 1 : 0.78, textAlign: "center", lineHeight: 1.05, whiteSpace: "nowrap" }}>
               {item.name}
             </span>
           </Link>
