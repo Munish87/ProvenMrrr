@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { BrowseFeed, BrowseStartupNode } from "@/components/browse/BrowseFeed";
 import { CategoryBrowser } from "@/components/startup/CategoryBrowser";
 import { Navbar } from "@/components/layout/Navbar";
@@ -31,7 +31,7 @@ export default async function BrowsePage(props: {
     const limit = 50;
     const offset = (page - 1) * limit;
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // 1. Build dynamic Supabase query
     let query = supabase
@@ -65,14 +65,6 @@ export default async function BrowsePage(props: {
     if (maxPrice !== null) query = query.lte("asking_price", maxPrice);
     if (minGrowth !== null) query = query.gte("growth_rate", minGrowth);
     if (maxGrowth !== null) query = query.lte("growth_rate", maxGrowth);
-    
-    if (maxMultiple !== "Any") {
-        const multipleLimit = parseFloat(maxMultiple.replace("x", ""));
-        // Since price multiple = asking_price / (monthly_revenue * 12),
-        // we can filter for asking_price <= multipleLimit * monthly_revenue * 12.
-        // Postgrest doesn't support col / col math easily, so we filter in-memory for now 
-        // as the list is naturally capped by verification.
-    }
 
     // Sorting
     if (filterQuery === "growth") {
@@ -81,14 +73,8 @@ export default async function BrowsePage(props: {
         query = query.order("created_at", { ascending: false });
     }
 
-    // 2. Fetch user and startups in parallel
-    const [
-        { data: { user } },
-        { data: startups, error, count }
-    ] = await Promise.all([
-        supabase.auth.getUser(),
-        query.range(offset, offset + limit - 1)
-    ]);
+    // 2. Fetch startups
+    const { data: startups, error, count } = await query.range(offset, offset + limit - 1);
     
     if (error) {
         console.error("Browse query error:", error);
@@ -143,7 +129,7 @@ export default async function BrowsePage(props: {
 
     return (
         <>
-            <Navbar user={user} />
+            <Navbar user={null} />
 
             <div className="page-container" style={{ paddingTop: 84, paddingBottom: 48 }}>
                 <BrowseFeed 

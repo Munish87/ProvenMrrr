@@ -1,0 +1,103 @@
+﻿
+> provenmrr@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+node.exe : ΓÜá The "middleware" file convention is deprecated. 
+Please use "proxy" instead. Learn more: 
+https://nextjs.org/docs/messages/middleware-to-proxy
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~
+    + CategoryInfo          : NotSpecified: (ΓÜá The "middle...lew 
+   are-to-proxy:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 3.4s
+  Running TypeScript ...
+  Collecting page data using 19 workers ...
+  Generating static pages using 19 workers (0/283) ...
+  Generating static pages using 19 workers (70/283) 
+  Generating static pages using 19 workers (141/283) 
+  Generating static pages using 19 workers (212/283) 
+Γ£ô Generating static pages using 19 workers (283/283) in 3.2s
+  Finalizing page optimization ...
+
+Route (app)                                        Revalidate  Expire
+Γöî Γùï /                                                     10m      1y
+Γö£ Γùï /_not-found
+Γö£ ╞Æ /api/admin/import-trustmrr
+Γö£ ╞Æ /api/advertisers
+Γö£ ╞Æ /api/advertisers/ad-webhook
+Γö£ ╞Æ /api/advertisers/checkout
+Γö£ ╞Æ /api/community/ensure-profile
+Γö£ ╞Æ /api/cron/match-alerts
+Γö£ ╞Æ /api/cron/sync-stripe
+Γö£ ╞Æ /api/cron/sync-trustmrr-daily
+Γö£ ╞Æ /api/debug-auth
+Γö£ ╞Æ /api/debug/matchmaking
+Γö£ ╞Æ /api/health-score/recalculate
+Γö£ ╞Æ /api/matches
+Γö£ ╞Æ /api/stripe/checkout
+Γö£ ╞Æ /api/stripe/connect
+Γö£ ╞Æ /api/stripe/payment-intent
+Γö£ ╞Æ /api/stripe/refresh
+Γö£ ╞Æ /api/sync
+Γö£ ╞Æ /api/webhooks/stripe
+Γö£ ╞Æ /auth/callback
+Γö£ ╞Æ /auth/signout
+Γö£ ╞Æ /browse
+Γö£ ΓùÅ /category/[slug]                                      30m      1y
+Γöé Γö£ /category/analytics                                   30m      1y
+Γöé Γö£ /category/artificial-intelligence                     30m      1y
+Γöé Γö£ /category/community                                   30m      1y
+Γöé Γöö [+29 more paths]
+Γö£ ╞Æ /co-founders
+Γö£ ╞Æ /co-founders/connect
+Γö£ Γùï /community                                             2m      1y
+Γö£ Γùï /contact
+Γö£ ╞Æ /dashboard
+Γö£ ╞Æ /dashboard/admin/advertisers
+Γö£ ╞Æ /dashboard/billing
+Γö£ ╞Æ /dashboard/claim
+Γö£ ╞Æ /dashboard/claim/[id]
+Γö£ ╞Æ /dashboard/inbox
+Γö£ ╞Æ /dashboard/interested
+Γö£ ╞Æ /dashboard/matchmaking
+Γö£ ╞Æ /dashboard/matchmaking/insights
+Γö£ ╞Æ /dashboard/matchmaking/preferences
+Γö£ ╞Æ /dashboard/profile
+Γö£ ╞Æ /dashboard/settings
+Γö£ ╞Æ /dashboard/startups
+Γö£ ╞Æ /dashboard/startups/[id]
+Γö£ Γùï /icon.png
+Γö£ Γùï /leaderboard                                          10m      1y
+Γö£ Γùï /legal
+Γö£ Γùï /login
+Γö£ ╞Æ /m
+Γö£ Γùï /privacy
+Γö£ Γùï /recent                                               10m      1y
+Γö£ Γùï /refunds
+Γö£ Γùï /robots.txt
+Γö£ ╞Æ /search
+Γö£ Γùï /sitemap.xml
+Γö£ ΓùÅ /startup/[id]                                          1h      1y
+Γöé Γö£ /startup/gumroad                                       1h      1y
+Γöé Γö£ /startup/2408ea2f-e600-4d02-8116-7d9534131340          1h      1y
+Γöé Γö£ /startup/stan                                          1h      1y
+Γöé Γöö [+197 more paths]
+Γö£ Γùï /stats                                                 1h      1y
+Γöö Γùï /terms
+
+
+╞Æ Proxy (Middleware)
+
+Γùï  (Static)   prerendered as static content
+ΓùÅ  (SSG)      prerendered as static HTML (uses generateStaticParams)
+╞Æ  (Dynamic)  server-rendered on demand
+

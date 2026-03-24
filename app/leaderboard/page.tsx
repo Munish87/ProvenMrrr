@@ -1,7 +1,7 @@
 import { FullLeaderboard } from "@/components/startup/FullLeaderboard";
 import { FrictionlessAddWrapper } from "@/components/startup/FrictionlessAddWrapper";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { CategoryBrowser } from "@/components/startup/CategoryBrowser";
 import { Navbar } from "@/components/layout/Navbar";
 
@@ -11,8 +11,7 @@ export const metadata = { title: "Leaderboard — ProvenMRR" };
 export const revalidate = 600;
 
 export default async function LeaderboardPage() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const supabase = createAdminClient();
 
     // 1. Fetch only top 100 verified startups by MRR
     const { data: startups, error } = await supabase
@@ -65,7 +64,7 @@ export default async function LeaderboardPage() {
 
     return (
         <>
-            <Navbar user={user} />
+            <Navbar user={null} />
 
             <div className="page-container" style={{ paddingTop: 84, paddingBottom: 72 }}>
                 {/* Page header */}

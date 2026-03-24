@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/categories";
 import { Navbar } from "@/components/layout/Navbar";
 
@@ -27,8 +27,7 @@ const getFlagEmoji = (countryCode: string | null) => {
 };
 
 export default async function StatsPage() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const supabase = createAdminClient();
 
     // 1. Fetch only necessary fields for all verified startups
     const { data: startups, error } = await supabase
@@ -79,7 +78,7 @@ export default async function StatsPage() {
 
     return (
         <div style={{ minHeight: "100vh" }}>
-            <Navbar user={user} />
+            <Navbar user={null} />
 
             <main className="page-container" style={{ paddingTop: 100, paddingBottom: 120 }}>
                 {/* Hero */}

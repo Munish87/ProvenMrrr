@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { CATEGORY_MAP } from "@/lib/categories";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -8,7 +8,14 @@ import { CategoryBrowser } from "@/components/startup/CategoryBrowser";
 import { getSaleStatusMap } from "@/lib/startup-sale-status";
 import { Navbar } from "@/components/layout/Navbar";
 
-export const dynamic = "force-dynamic";
+// Revalidate category pages every 30 minutes
+export const revalidate = 1800;
+
+export async function generateStaticParams() {
+    return Object.keys(CATEGORY_MAP).map((slug) => ({
+        slug: slug,
+    }));
+}
 
 export default async function CategoryPage(props: { params: Promise<{ slug: string }> }) {
     const { slug } = await props.params;
@@ -18,20 +25,14 @@ export default async function CategoryPage(props: { params: Promise<{ slug: stri
         notFound();
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     
-    // 1. Fetch user and first batch of startups in parallel
-    const [
-        { data: { user } },
-        { data: firstBatch, error: firstBatchError }
-    ] = await Promise.all([
-        supabase.auth.getUser(),
-        supabase.from("startups")
+    // 1. Fetch first batch of startups
+    const { data: firstBatch, error: firstBatchError } = await supabase.from("startups")
             .select("id, name, logo_url, description, category, is_listed_for_sale, is_verified, is_anonymous, created_at, sale_status_override, asking_price, monthly_revenue, growth_rate, revenue_30d")
             .eq("category", categoryName)
             .order("id")
-            .limit(1000)
-    ]);
+            .limit(1000);
 
     if (firstBatchError) {
         console.error("Error fetching startups:", firstBatchError);
@@ -115,7 +116,7 @@ export default async function CategoryPage(props: { params: Promise<{ slug: stri
 
     return (
         <div style={{ minHeight: "100vh" }}>
-            <Navbar user={user} />
+            <Navbar user={null} />
 
             <main className="page-container" style={{ paddingTop: 82, paddingBottom: 68 }}>
                 {/* Category Header */}

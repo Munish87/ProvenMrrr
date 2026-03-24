@@ -23,6 +23,25 @@ export const revalidate = 3600;
 
 interface Props { params: Promise<{ id: string }>; }
 
+export async function generateStaticParams() {
+    const supabase = createAdminClient();
+    const { data: startups } = await supabase
+        .from("startups")
+        .select("slug, id")
+        .eq("is_verified", true)
+        .order("monthly_revenue", { ascending: false })
+        .limit(100);
+
+    if (!startups) return [];
+
+    return startups.flatMap((s) => {
+        const params = [];
+        if (s.slug) params.push({ id: s.slug });
+        if (s.id) params.push({ id: s.id });
+        return params;
+    });
+}
+
 function formatCountryLabel(country: string | null) {
     if (!country) return null;
 
@@ -51,7 +70,7 @@ function getCountryFlag(country: unknown) {
 
 export async function generateMetadata({ params }: Props) {
     const { id } = await params;
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     const { data, error } = await supabase.from("startups").select("name, description, is_anonymous, category, slug, monthly_revenue")
         .or(isUUID ? `id.eq.${id},slug.eq.${id}` : `slug.eq.${id}`)
@@ -87,19 +106,13 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function StartupProfilePage({ params }: Props) {
     const { id } = await params;
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-    // 1. Fetch startup, user, health score, and connection in parallel
-    const [
-        { data: { user } },
-        { data: startup },
-    ] = await Promise.all([
-        supabase.auth.getUser(),
-        supabase.from("startups").select("*")
-            .or(isUUID ? `id.eq.${id},slug.eq.${id}` : `slug.eq.${id}`)
-            .maybeSingle()
-    ]);
+    // 1. Fetch startup
+    const { data: startup } = await supabase.from("startups").select("*")
+        .or(isUUID ? `id.eq.${id},slug.eq.${id}` : `slug.eq.${id}`)
+        .maybeSingle();
 
     if (!startup) {
         console.error(`[StartupProfile] Startup not found for ID: ${id} (isUUID: ${isUUID})`);
@@ -157,17 +170,11 @@ export default async function StartupProfilePage({ params }: Props) {
     let initialSaved = false;
     let ownerProfile: { name: string | null; x_handle: string | null; avatar_url: string | null } | null = null;
 
-    // Fetch watchlist + owner profile in parallel
-    const [watchlistResult, ownerProfileResult] = await Promise.all([
-        user && startup.id
-            ? supabase.from("watchlists").select("id").eq("startup_id", startup.id).eq("user_id", user.id).maybeSingle()
-            : Promise.resolve({ data: null }),
-        startup.claimed_by_user_id
-            ? supabase.from("users").select("name, x_handle, avatar_url").eq("id", startup.claimed_by_user_id).returns<{ name: string | null; x_handle: string | null; avatar_url: string | null }[]>().single()
-            : Promise.resolve({ data: null }),
-    ]);
+    // Fetch owner profile (watchlist is now handled on the client)
+    const ownerProfileResult = startup.claimed_by_user_id
+        ? await supabase.from("users").select("name, x_handle, avatar_url").eq("id", startup.claimed_by_user_id).returns<{ name: string | null; x_handle: string | null; avatar_url: string | null }[]>().single()
+        : { data: null };
 
-    if (watchlistResult.data) initialSaved = true;
     ownerProfile = (ownerProfileResult.data ?? null) as { name: string | null; x_handle: string | null; avatar_url: string | null } | null;
 
     let latestSnap = null;
@@ -411,7 +418,7 @@ export default async function StartupProfilePage({ params }: Props) {
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
             />
-            <Navbar user={user} />
+            <Navbar user={null} />
 
             <div className="page-container" style={{ paddingTop: 100, paddingBottom: 80 }}>
                 {/* Breadcrumb */}
@@ -638,8 +645,8 @@ export default async function StartupProfilePage({ params }: Props) {
                                     ) : "Are you the founder? Connect to claim your profile."}
                                 </p>
                             </div>
-                            {!startup.claimed_by_user_id && (
-                                <Link href={user ? `/dashboard/claim/${startup.id}` : `/login?next=${encodeURIComponent('/dashboard/claim/' + startup.id)}`} className="btn btn-primary" style={{ marginLeft: "auto" }}>
+                             {!startup.claimed_by_user_id && (
+                                <Link href={`/login?next=${encodeURIComponent('/dashboard/claim/' + startup.id)}`} className="btn btn-primary" style={{ marginLeft: "auto" }}>
                                     Claim this startup
                                 </Link>
                             )}

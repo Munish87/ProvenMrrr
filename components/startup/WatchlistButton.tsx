@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Heart } from "lucide-react";
 import { toggleWatchlist } from "@/app/actions/startup";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { createClient } from "@/lib/supabase/client";
 
 interface WatchlistButtonProps {
     startupId: string;
@@ -13,7 +15,24 @@ interface WatchlistButtonProps {
 export function WatchlistButton({ startupId, initialSaved }: WatchlistButtonProps) {
     const [saved, setSaved] = useState(initialSaved);
     const [loading, setLoading] = useState(false);
+    const { user } = useAuth();
     const router = useRouter();
+    const supabase = createClient();
+
+    useEffect(() => {
+        const checkStatus = async () => {
+            if (!user) return;
+            const { data } = await supabase
+                .from("watchlists")
+                .select("id")
+                .eq("startup_id", startupId)
+                .eq("user_id", user.id)
+                .maybeSingle();
+            
+            if (data) setSaved(true);
+        };
+        checkStatus();
+    }, [user, startupId, supabase]);
 
     const handleToggle = async () => {
         if (loading) return;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { Clock } from "lucide-react";
 import { FrictionlessAddWrapper } from "@/components/startup/FrictionlessAddWrapper";
 import { StatusBadge } from "@/components/startup/StatusBadge";
@@ -35,8 +35,7 @@ function getRelativeTime(dateString: string) {
 }
 
 export default async function RecentPage() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const supabase = createAdminClient();
 
     // Fetch up to 50 most recently verified startups
     const { data: recentStartups } = await supabase
@@ -50,7 +49,7 @@ export default async function RecentPage() {
 
     return (
         <div style={{ minHeight: "100vh", background: "var(--color-bg)" }}>
-            <Navbar user={user} />
+            <Navbar user={null} />
 
             <main className="page-container" style={{ paddingTop: 100, paddingBottom: 120, maxWidth: 880 }}>
                 {/* Header Title */}
