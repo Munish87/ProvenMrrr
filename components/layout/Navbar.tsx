@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, LayoutDashboard } from "lucide-react";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface NavbarProps {
-  user: any;
+  user?: any; // Keep prop for backward compatibility or initial SSR if needed
 }
 
-export function Navbar({ user }: NavbarProps) {
+export function Navbar({ user: initialUser }: NavbarProps) {
+  const { user: contextUser } = useAuth();
+  const user = contextUser || initialUser;
   const pathname = usePathname();
 
   return (

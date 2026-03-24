@@ -1,9 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { HomePageLeaderboard } from "./HomePageLeaderboard";
 import { getSaleStatusMap } from "@/lib/startup-sale-status";
 
 export async function LeaderboardSection() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const baseSelect = "id, name, slug, logo_url, category, description, x_handle, owner_id, claimed_by_user_id, is_listed_for_sale, asking_price, is_verified, is_anonymous, verified, created_at, sale_status_override, monthly_revenue, growth_rate, revenue_30d";
 
   // Fetch leaderboard
