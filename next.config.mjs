@@ -13,6 +13,8 @@ const nextConfig = {
       { protocol: "https", hostname: "ui-avatars.com" },
       { protocol: "https", hostname: "d21oz30g4w22sz.cloudfront.net" },
       { protocol: "https", hostname: "files.stripe.com" },
+      { protocol: "https", hostname: "prod-dodo-backend-internal.s3.ap-south-1.amazonaws.com" },
+      { protocol: "https", hostname: "www.appatar.io" },
     ],
   },
   webpack(config) {
