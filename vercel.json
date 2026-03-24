@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/sync-stripe",
-      "schedule": "0 * * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/cron/sync-trustmrr-daily",
@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/match-alerts",
-      "schedule": "0 8 * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
