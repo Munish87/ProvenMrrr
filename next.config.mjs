@@ -1,8 +1,7 @@
-import type { NextConfig } from "next";
-
 const lucideReactEntry = "lucide-react/dist/esm/lucide-react.js";
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   turbopack: {
     resolveAlias: {
       "lucide-react": lucideReactEntry,

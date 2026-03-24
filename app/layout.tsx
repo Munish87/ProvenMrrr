@@ -88,8 +88,14 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
+  let session = null;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getSession();
+    session = data?.session ?? null;
+  } catch (e) {
+    console.error("Auth session fetch failed in layout:", e);
+  }
   const user = session?.user ?? null;
 
   return (
