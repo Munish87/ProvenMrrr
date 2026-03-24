@@ -8,6 +8,9 @@ import { HomePageSearch } from "@/components/startup/HomePageSearch";
 import { Navbar } from "@/components/layout/Navbar";
 import { DiscoverySections } from "@/components/startup/DiscoverySections";
 import { LeaderboardSection } from "@/components/startup/LeaderboardSection";
+import { HomePageFeed } from "@/components/startup/HomePageFeed";
+import { HomePageLeaderboard } from "@/components/startup/HomePageLeaderboard";
+import { getSaleStatusMap } from "@/lib/startup-sale-status";
 
 export const metadata = {
   title: "ProvenMRR - The #1 Verified Startup Revenue Database & Marketplace",

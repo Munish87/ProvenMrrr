@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
-import { TrustMRRImporter } from "@/lib/services/trustmrrImporter";
 import { syncStripeMetrics } from "@/lib/services/metrics";
 import { createAdminClient } from "@/lib/supabase/server";
 
-export const maxDuration = 60; // Max allowed for Vercel Hobby tier
+export const maxDuration = 60;
 
 export async function GET(req: Request) {
     const authHeader = req.headers.get("Authorization");
     const cronSecret = process.env.CRON_SECRET;
 
-    // Secure endpoint check
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -18,15 +16,7 @@ export async function GET(req: Request) {
     const results: any[] = [];
 
     try {
-        console.log("Starting hourly comprehensive sync...");
-
-        // 1. TrustMRR Sync (Fast mode: MRR/Growth only)
-        console.log("Syncing TrustMRR metrics...");
-        const trustResult = await TrustMRRImporter.importStartups(false, true);
-        results.push({ service: "TrustMRR", result: trustResult });
-
-        // 2. Native Stripe Connections Sync
-        console.log("Syncing native Stripe metric...");
+        console.log("Starting hourly native Stripe metrics sync...");
         const { data: connections, error: connError } = await adminSupabase
             .from("revenue_connections")
             .select("startup_id, provider, encrypted_api_key, id")
@@ -34,6 +24,7 @@ export async function GET(req: Request) {
 
         if (connError) {
             console.error("Failed to fetch native connections:", connError);
+            return NextResponse.json({ error: "Failed to fetch native connections" }, { status: 500 });
         } else if (connections) {
             for (const conn of connections) {
                 console.log(`Updating Native Stripe for startup: ${conn.startup_id}`);
@@ -42,13 +33,9 @@ export async function GET(req: Request) {
             }
         }
 
-        return NextResponse.json({
-            success: true,
-            results
-        });
-
+        return NextResponse.json({ success: true, results });
     } catch (e: any) {
-        console.error("Hourly sync failed:", e);
+        console.error("Hourly Stripe sync failed:", e);
         return NextResponse.json({ error: e.message }, { status: 500 });
     }
 }
