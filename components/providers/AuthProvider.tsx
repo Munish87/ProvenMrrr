@@ -21,25 +21,23 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<User | null>(null);
-    const [session, setSession] = useState<Session | null>(null);
+export function AuthProvider({ 
+    children,
+    initialSession = null,
+    initialUser = null
+}: { 
+    children: React.ReactNode;
+    initialSession?: Session | null;
+    initialUser?: User | null;
+}) {
+    const [user, setUser] = useState<User | null>(initialUser);
+    const [session, setSession] = useState<Session | null>(initialSession);
     const [loading, setLoading] = useState(false);
     const supabase = createClient();
     const router = useRouter();
 
     useEffect(() => {
         let isMounted = true;
-
-        const getInitialSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (isMounted) {
-                setSession(session);
-                setUser(session?.user ?? null);
-            }
-        };
-
-        getInitialSession();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (isMounted) {

@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "**.supabase.co" },
       { protocol: "https", hostname: "ui-avatars.com" },
+      { protocol: "https", hostname: "d21oz30g4w22sz.cloudfront.net" },
+      { protocol: "https", hostname: "files.stripe.com" },
     ],
   },
   webpack(config) {

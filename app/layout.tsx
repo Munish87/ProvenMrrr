@@ -81,12 +81,17 @@ import { FloatingNav } from "@/components/layout/FloatingNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { Footer } from "@/components/layout/Footer";
+import { createClient } from "@/lib/supabase/server";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
+
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning data-theme="dark">
       <head>
@@ -123,7 +128,7 @@ export default function RootLayout({
             background: "var(--app-shell-overlay, transparent)",
           }}
         />
-        <AuthProvider>
+        <AuthProvider initialSession={session} initialUser={user}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
             <PageTransition>{children}</PageTransition>
             <Footer />

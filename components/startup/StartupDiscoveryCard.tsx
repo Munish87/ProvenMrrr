@@ -118,7 +118,7 @@ export function StartupDiscoveryCard({ s, snap }: { s: StartupBase; snap?: SnapB
                             border: "1px solid rgba(255,255,255,0.08)",
                         }}
                     >
-                        <Image src={s.logo_url} alt={s.name} fill className="object-cover" unoptimized priority={false} />
+                        <Image src={s.logo_url} alt={s.name} fill className="object-cover" priority={false} />
                     </div>
                 ) : (
                     <div
