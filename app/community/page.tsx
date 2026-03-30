@@ -7,39 +7,59 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Founder Community - ProvenMRR",
-  description: "Build in public, discuss tactics, and learn from other founders inside ProvenMRR.",
+  description:
+    "Build in public, discuss tactics, and learn from other founders inside ProvenMRR.",
 };
 
 export default async function CommunityPage() {
   const supabase = await createClient();
   const adminSupabase = createAdminClient();
 
-  // Get authenticated user (returns null if not logged in — no redirect)
-  const { data: { user } } = await supabase.auth.getUser();
+  // Get authenticated user — never throws, returns null when logged out
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // Fetch real-time counts and user profile in parallel
-  const [{ count: totalFounders }, { count: totalStartups }, userProfileRes, userStartupsRes] = await Promise.all([
+  // Always fetch aggregate counts
+  const [{ count: totalFounders }, { count: totalStartups }] = await Promise.all([
     adminSupabase.from("users").select("*", { count: "exact", head: true }),
     adminSupabase.from("startups").select("*", { count: "exact", head: true }),
-    user
-      ? adminSupabase.from("users").select("name, email, avatar_url").eq("id", user.id).maybeSingle()
-      : Promise.resolve({ data: null }),
-    user
-      ? adminSupabase.from("startups").select("name").eq("owner_id", user.id).order("created_at", { ascending: false })
-      : Promise.resolve({ data: [] }),
   ]);
 
-  const userProfile = userProfileRes.data;
-  const userStartups = (userStartupsRes.data ?? []).map((s: { name: string }) => s.name);
+  // Only fetch user-specific data when logged in
+  let currentUser: {
+    id: string;
+    email: string | null;
+    name: string | null;
+    avatarUrl: string | null;
+  } | null = null;
+  let userStartups: string[] = [];
 
-  const currentUser = user
-    ? {
-        id: user.id,
-        email: userProfile?.email ?? user.email ?? null,
-        name: userProfile?.name ?? null,
-        avatarUrl: userProfile?.avatar_url ?? null,
-      }
-    : null;
+  if (user) {
+    const [profileRes, startupsRes] = await Promise.all([
+      adminSupabase
+        .from("users")
+        .select("name, email, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle(),
+      adminSupabase
+        .from("startups")
+        .select("name")
+        .eq("owner_id", user.id)
+        .order("created_at", { ascending: false }),
+    ]);
+
+    currentUser = {
+      id: user.id,
+      email: profileRes.data?.email ?? user.email ?? null,
+      name: profileRes.data?.name ?? null,
+      avatarUrl: profileRes.data?.avatar_url ?? null,
+    };
+
+    userStartups = (startupsRes.data ?? []).map(
+      (s: { name: string }) => s.name
+    );
+  }
 
   return (
     <>
@@ -53,4 +73,3 @@ export default async function CommunityPage() {
     </>
   );
 }
-
