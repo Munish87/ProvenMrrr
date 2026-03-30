@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight, Zap } from "lucide-react";
 import { HealthScoreBadge } from "./HealthScoreBadge";
@@ -20,6 +20,24 @@ interface DashboardStartupRowProps {
 
 export function DashboardStartupRow({ startup, score, snap }: DashboardStartupRowProps) {
     const [showModal, setShowModal] = useState(false);
+    const [priceLabel, setPriceLabel] = useState("$9.99");
+
+    useEffect(() => {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const offset = new Date().getTimezoneOffset();
+        const locale = navigator.language;
+        if (tz.includes("Asia/Calcutta") || tz.includes("Asia/Kolkata") || offset === -330 || locale.includes("IN")) {
+            setPriceLabel("₹849");
+        } else if (tz.includes("Canada")) {
+            setPriceLabel("$13.99");
+        } else if (tz.includes("London")) {
+            setPriceLabel("£7.99");
+        } else if (tz.includes("Europe") || tz.includes("Paris") || tz.includes("Berlin")) {
+            setPriceLabel("€9.49");
+        } else {
+            setPriceLabel("$9.99");
+        }
+    }, []);
 
     return (
         <>
@@ -69,7 +87,7 @@ export function DashboardStartupRow({ startup, score, snap }: DashboardStartupRo
                                         gap: 4
                                     }}
                                 >
-                                    <Zap size={10} fill="white" /> Sell for $0.10
+                                    <Zap size={10} fill="white" /> Sell for {priceLabel}
                                 </button>
                             )}
                              {score !== undefined ? (

@@ -28,20 +28,20 @@ export async function POST(req: NextRequest) {
 
         // Pricing logic: Match frontend detection
         const currency = (requestedCurrency as string).toLowerCase();
-        let unitAmount = 100; // Default $1.00 (100 cents)
+        let unitAmount = 999; // Default $9.99 USD (999 cents)
         let stripeCurrency = "usd";
 
         if (currency === "inr") {
-            unitAmount = 10000; // ₹100.00 (10000 paise)
+            unitAmount = 84900; // ₹849.00 (84900 paise)
             stripeCurrency = "inr";
         } else if (currency === "cad") {
-            unitAmount = 140; // $1.40 CAD
+            unitAmount = 1399; // $13.99 CAD
             stripeCurrency = "cad";
         } else if (currency === "eur") {
-            unitAmount = 95; // €0.95
+            unitAmount = 949; // €9.49
             stripeCurrency = "eur";
         } else if (currency === "gbp") {
-            unitAmount = 80; // £0.80
+            unitAmount = 799; // £7.99
             stripeCurrency = "gbp";
         }
 

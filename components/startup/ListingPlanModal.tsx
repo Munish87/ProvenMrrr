@@ -16,7 +16,7 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [currency, setCurrency] = useState("usd");
-    const [priceDisplay, setPriceDisplay] = useState("$1");
+    const [priceDisplay, setPriceDisplay] = useState("$9.99");
 
     useEffect(() => {
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -27,16 +27,16 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
 
         if (tz.includes("Asia/Calcutta") || tz.includes("Asia/Kolkata") || tz.includes("India") || offset === -330 || locale === "en-IN" || locale === "hi-IN") {
             setCurrency("inr");
-            setPriceDisplay("₹100");
+            setPriceDisplay("₹849");
         } else if (tz.includes("Canada")) {
             setCurrency("cad");
-            setPriceDisplay("$1.40");
+            setPriceDisplay("$13.99");
         } else if (tz.includes("Europe") || tz.includes("Paris") || tz.includes("Berlin") || tz.includes("London")) {
             setCurrency(tz.includes("London") ? "gbp" : "eur");
-            setPriceDisplay(tz.includes("London") ? "£0.80" : "€0.95");
+            setPriceDisplay(tz.includes("London") ? "£7.99" : "€9.49");
         } else {
             setCurrency("usd");
-            setPriceDisplay("$1.00");
+            setPriceDisplay("$9.99");
         }
     }, [isOpen]);
 
