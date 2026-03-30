@@ -76,7 +76,7 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
             const res = await fetch("/api/stripe/checkout", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ startupId }),
+                body: JSON.stringify({ startupId, currency: finalCurrency }),
                 credentials: "include",
             });
             const data = await res.json();
