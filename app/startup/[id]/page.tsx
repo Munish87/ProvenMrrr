@@ -109,6 +109,10 @@ export default async function StartupProfilePage({ params }: Props) {
     const supabase = createAdminClient();
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
+    // Fetch session user for navbar (non-blocking — won't redirect if logged out)
+    const userClient = await createClient();
+    const { data: { user: sessionUser } } = await userClient.auth.getUser();
+
     // 1. Fetch startup
     const { data: startup } = await supabase.from("startups").select("*")
         .or(isUUID ? `id.eq.${id},slug.eq.${id}` : `slug.eq.${id}`)
@@ -418,7 +422,7 @@ export default async function StartupProfilePage({ params }: Props) {
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
             />
-            <Navbar user={null} />
+            <Navbar user={sessionUser} />
 
             <div className="page-container" style={{ paddingTop: 100, paddingBottom: 80 }}>
                 {/* Breadcrumb */}
