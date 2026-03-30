@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
                 },
             ],
             mode: "payment",
-            success_url: `${appUrl}/startup/${startupId}?payment=success&id=${startupId}`,
+            success_url: `${appUrl}/startup/${startupId}?payment=success&id=${startupId}&session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${appUrl}/dashboard/startups?id=${startupId}`,
             metadata: {
                 startup_id: startupId,

@@ -47,12 +47,31 @@ export function ListingPlanModal({ isOpen, onClose, onConfirm, startupId, startu
         }
     }, [isOpen]);
 
-    // Check on return from Stripe if payment was completed
+    // Check on return from Stripe if payment was completed, then verify & activate via API
     useEffect(() => {
         if (!isOpen) return;
         const params = new URLSearchParams(window.location.search);
         if (params.get("payment") === "success" && params.get("id") === startupId) {
-            onConfirm();
+            const sessionId = params.get("session_id");
+            if (sessionId) {
+                // Verify the session server-side and activate listing_paid in the DB
+                fetch(`/api/stripe/verify-session?session_id=${sessionId}&startup_id=${startupId}`, {
+                    credentials: "include",
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            onConfirm();
+                        }
+                    })
+                    .catch(() => {
+                        // Fallback: still call onConfirm so the UI isn't stuck
+                        onConfirm();
+                    });
+            } else {
+                // No session_id in URL (old session) — just proceed
+                onConfirm();
+            }
         }
     }, [isOpen, startupId, onConfirm]);
 
