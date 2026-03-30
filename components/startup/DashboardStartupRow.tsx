@@ -90,7 +90,7 @@ export function DashboardStartupRow({ startup, score, snap }: DashboardStartupRo
                                     <Zap size={10} fill="white" /> Sell for {priceLabel}
                                 </button>
                             )}
-                             {score !== undefined ? (
+                            {score !== undefined ? (
                                 <HealthScoreBadge score={score} size="sm" />
                             ) : (
                                 <span style={{ fontSize: 11, color: "var(--color-secondary)", fontWeight: 600, padding: "4px 10px", border: "1px solid var(--color-border)", borderRadius: 8, background: "rgba(0,0,0,0.02)" }}>
@@ -103,7 +103,7 @@ export function DashboardStartupRow({ startup, score, snap }: DashboardStartupRo
                 </Link>
             </div>
 
-            <ListingPlanModal 
+            <ListingPlanModal
                 isOpen={showModal}
                 onClose={() => setShowModal(false)}
                 onConfirm={() => {
