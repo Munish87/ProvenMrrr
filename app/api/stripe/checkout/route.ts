@@ -64,7 +64,11 @@ export async function POST(req: NextRequest) {
         }
 
         const stripe = getStripe();
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        // Derive the base URL from the request host — always correct in production.
+        // Falls back to NEXT_PUBLIC_APP_URL, then localhost for local dev.
+        const host = req.headers.get("host") || "localhost:3000";
+        const protocol = host.startsWith("localhost") ? "http" : "https";
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
 
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
@@ -88,8 +92,8 @@ export async function POST(req: NextRequest) {
             success_url: `${appUrl}/startup/${startupId}?payment=success&id=${startupId}`,
             cancel_url: `${appUrl}/dashboard/startups?id=${startupId}`,
             metadata: {
-                startupId: startupId,
-                userId: user.id,
+                startup_id: startupId,
+                user_id: user.id,
                 type: "listing_fee",
             },
         });
