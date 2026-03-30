@@ -18,7 +18,7 @@ export function ListingToggle({ id, name, initialValue, initialHasPaidListing, o
     const [hasPaidListing, setHasPaidListing] = useState(initialHasPaidListing);
     const [showModal, setShowModal] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [priceDisplay, setPriceDisplay] = useState("$1.00");
+    const [priceDisplay, setPriceDisplay] = useState("$9.99");
 
     useEffect(() => {
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -28,13 +28,13 @@ export function ListingToggle({ id, name, initialValue, initialHasPaidListing, o
         console.log(`[Currency Detection Toggle] TZ: ${tz}, Offset: ${offset}, Locale: ${locale}`);
 
         if (tz.includes("Asia") || tz.includes("Kolkata") || tz.includes("Calcutta") || offset === -330 || locale.includes("IN")) {
-            setPriceDisplay("₹100");
+            setPriceDisplay("₹849");
         } else if (tz.includes("Canada")) {
-            setPriceDisplay("$1.40");
+            setPriceDisplay("$13.99");
         } else if (tz.includes("Europe") || tz.includes("Paris") || tz.includes("Berlin") || tz.includes("London")) {
-            setPriceDisplay(tz.includes("London") ? "£0.80" : "€0.95");
+            setPriceDisplay(tz.includes("London") ? "£7.99" : "€9.49");
         } else {
-            setPriceDisplay("$1.00");
+            setPriceDisplay("$9.99");
         }
     }, []);
 
