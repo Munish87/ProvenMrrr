@@ -64,11 +64,16 @@ export async function POST(req: NextRequest) {
         }
 
         const stripe = getStripe();
-        // Derive the base URL from the request host — always correct in production.
-        // Falls back to NEXT_PUBLIC_APP_URL, then localhost for local dev.
+        // Always build the URL from the real request host so Stripe cancel/success URLs
+        // point to the live domain even if NEXT_PUBLIC_APP_URL is wrong or missing.
         const host = req.headers.get("host") || "localhost:3000";
-        const protocol = host.startsWith("localhost") ? "http" : "https";
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
+        const isLocal = host.startsWith("localhost") || host.startsWith("127.");
+        const protocol = isLocal ? "http" : "https";
+        // On Vercel the host header IS the production domain — use it directly.
+        // Only fall back to the env var when running locally.
+        const appUrl = isLocal
+            ? (process.env.NEXT_PUBLIC_APP_URL || `http://${host}`)
+            : `${protocol}://${host}`;
 
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
