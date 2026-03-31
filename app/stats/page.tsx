@@ -69,10 +69,10 @@ export default async function StatsPage() {
         .slice(0, 50);
 
     const topCategories = Object.keys(countByCategory)
-        .map((k) => ({ 
-            category: k, 
+        .map((k) => ({
+            category: k,
             count: countByCategory[k],
-            mrr: mrByCategory[k] || 0 
+            mrr: mrByCategory[k] || 0
         }))
         .sort((a, b) => b.mrr - a.mrr);
 

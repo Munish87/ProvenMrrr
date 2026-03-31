@@ -67,9 +67,12 @@ function CategoryBrowserSkeleton() {
 }
 
 export default async function HomePage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   return (
     <>
-      <Navbar user={null} />
+      <Navbar user={user} />
 
       <section className="page-container" style={{ paddingTop: 6 }}>
         <div

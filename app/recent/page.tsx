@@ -81,12 +81,12 @@ export default async function RecentPage() {
 
                             return (
                                 <Link key={s.id} href={`/startup/${s.id}`} style={{ textDecoration: "none" }}>
-                                    <div 
-                                        className="card card-hover" 
-                                        style={{ 
-                                            padding: "24px", 
-                                            display: "flex", 
-                                            alignItems: "center", 
+                                    <div
+                                        className="card card-hover"
+                                        style={{
+                                            padding: "24px",
+                                            display: "flex",
+                                            alignItems: "center",
                                             gap: 20,
                                             background: isSold ? "rgba(255,255,255,0.05)" : "var(--color-surface)",
                                             border: isSold ? "1px solid rgba(255,255,255,0.1)" : "1px solid var(--color-border)",
@@ -95,10 +95,10 @@ export default async function RecentPage() {
                                         }}
                                     >
                                         {/* Avatar */}
-                                        <div className="startup-card-logo" style={{ 
-                                            width: 56, 
-                                            height: 56, 
-                                            fontSize: 24, 
+                                        <div className="startup-card-logo" style={{
+                                            width: 56,
+                                            height: 56,
+                                            fontSize: 24,
                                             flexShrink: 0,
                                             background: "var(--startup-card-logo-bg)",
                                             border: "1px solid var(--startup-card-logo-border)",
@@ -113,26 +113,26 @@ export default async function RecentPage() {
                                             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
                                                 <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--color-text)", margin: 0, filter: s.is_anonymous ? "blur(5px)" : "none" }}>{s.name}</h3>
                                                 {isSold && (
-                                                    <span style={{ 
-                                                        fontSize: 9, 
-                                                        fontWeight: 800, 
-                                                        padding: "2px 7px", 
-                                                        borderRadius: 999, 
-                                                        background: "#FEE2E2", 
+                                                    <span style={{
+                                                        fontSize: 9,
+                                                        fontWeight: 800,
+                                                        padding: "2px 7px",
+                                                        borderRadius: 999,
+                                                        background: "#FEE2E2",
                                                         color: "#991B1B",
                                                         letterSpacing: "0.04em"
                                                     }}>SOLD</span>
                                                 )}
                                                 {!isSold && s.is_listed_for_sale && <StatusBadge status={"sale" as any} />}
-                                                <div style={{ 
-                                                    display: "flex", 
-                                                    alignItems: "center", 
-                                                    gap: 4, 
-                                                    color: "var(--color-secondary)", 
-                                                    fontSize: 12, 
-                                                    background: "rgba(0,0,0,0.04)", 
-                                                    padding: "2px 8px", 
-                                                    borderRadius: 12 
+                                                <div style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: 4,
+                                                    color: "var(--color-secondary)",
+                                                    fontSize: 12,
+                                                    background: "rgba(0,0,0,0.04)",
+                                                    padding: "2px 8px",
+                                                    borderRadius: 12
                                                 }}>
                                                     <Clock size={12} />
                                                     <span style={{ fontWeight: 600 }}>{relativeTime}</span>

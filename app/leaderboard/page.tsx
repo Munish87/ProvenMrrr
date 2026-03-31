@@ -40,7 +40,7 @@ export default async function LeaderboardPage() {
             .from("users")
             .select("id, name, x_handle, avatar_url")
             .in("id", founderIds);
-        
+
         for (const p of founderProfiles ?? []) {
             founderMap.set(p.id, p);
         }

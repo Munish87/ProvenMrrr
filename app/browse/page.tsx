@@ -17,7 +17,7 @@ export default async function BrowsePage(props: {
     const countryQuery = typeof searchParams?.country === "string" ? searchParams.country : "All";
     const filterQuery = typeof searchParams?.filter === "string" ? searchParams.filter : "all";
     const searchQuery = typeof searchParams?.q === "string" ? searchParams.q : "";
-    
+
     // Additional filters from the sidebar
     const minMrr = typeof searchParams?.minMrr === "string" ? Number(searchParams.minMrr) : null;
     const maxMrr = typeof searchParams?.maxMrr === "string" ? Number(searchParams.maxMrr) : null;
@@ -26,7 +26,7 @@ export default async function BrowsePage(props: {
     const minGrowth = typeof searchParams?.minGrowth === "string" ? Number(searchParams.minGrowth) : null;
     const maxGrowth = typeof searchParams?.maxGrowth === "string" ? Number(searchParams.maxGrowth) : null;
     const maxMultiple = typeof searchParams?.maxMultiple === "string" ? searchParams.maxMultiple : "Any";
-    
+
     const page = typeof searchParams?.page === "string" ? parseInt(searchParams.page) : 1;
     const limit = 50;
     const offset = (page - 1) * limit;
@@ -46,11 +46,11 @@ export default async function BrowsePage(props: {
     if (categoryQuery.toLowerCase() !== "all") {
         query = query.eq("category", categoryQuery);
     }
-    
+
     if (countryQuery.toLowerCase() !== "all") {
         query = query.eq("country", countryQuery);
     }
-    
+
     if (filterQuery === "deals") {
         query = query.eq("is_listed_for_sale", true);
     }
@@ -75,7 +75,7 @@ export default async function BrowsePage(props: {
 
     // 2. Fetch startups
     const { data: startups, error, count } = await query.range(offset, offset + limit - 1);
-    
+
     if (error) {
         console.error("Browse query error:", error);
     }
@@ -97,7 +97,7 @@ export default async function BrowsePage(props: {
                     .select("startup_id, score")
                     .in("startup_id", ids)
                     .order("created_at", { ascending: false });
-                
+
                 for (const s of scores ?? []) {
                     if (!map.has(s.startup_id)) map.set(s.startup_id, s.score);
                 }
@@ -132,10 +132,10 @@ export default async function BrowsePage(props: {
             <Navbar user={null} />
 
             <div className="page-container" style={{ paddingTop: 84, paddingBottom: 48 }}>
-                <BrowseFeed 
-                    initialStartups={initialStartups} 
+                <BrowseFeed
+                    initialStartups={initialStartups}
                     totalCount={count || 0}
-                    initialQuery={searchQuery} 
+                    initialQuery={searchQuery}
                     initialCategory={categoryQuery}
                     initialCountry={countryQuery}
                     initialOnlyForSale={filterQuery === "deals"}
@@ -147,7 +147,7 @@ export default async function BrowsePage(props: {
                     initialMaxPrice={searchParams?.maxPrice as string || ""}
                     initialMaxMultiple={searchParams?.maxMultiple as string || "Any"}
                 />
-                
+
                 <div style={{ marginTop: 48, paddingTop: 42, borderTop: "1px solid var(--color-border)" }}>
                     <CategoryBrowser />
                 </div>
