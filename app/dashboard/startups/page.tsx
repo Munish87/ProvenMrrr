@@ -165,7 +165,7 @@ export default async function DashboardStartupsPage({ searchParams }: { searchPa
 
         const { data: ownedStartup } = await supabaseServer
             .from("startups")
-            .select("id")
+            .select("id, category")
             .eq("id", id)
             .eq("owner_id", currentUser.id)
             .maybeSingle();
@@ -190,7 +190,17 @@ export default async function DashboardStartupsPage({ searchParams }: { searchPa
         await adminSupabase.from("revenue_snapshots").delete().eq("startup_id", id);
         await adminSupabase.from("stripe_connections").delete().eq("startup_id", id);
         await adminSupabase.from("startups").delete().eq("id", id).eq("owner_id", currentUser.id);
+
+        // Revalidate all pages that display startup listings
+        revalidatePath("/");
+        revalidatePath("/browse");
+        revalidatePath("/recent");
+        revalidatePath("/stats");
         revalidatePath("/dashboard/startups");
+        revalidatePath(`/startup/${id}`);
+        if (ownedStartup.category) {
+            revalidatePath(`/category/${slugify(ownedStartup.category)}`);
+        }
         redirect("/dashboard/startups");
     }
 
