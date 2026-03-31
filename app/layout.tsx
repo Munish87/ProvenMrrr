@@ -75,6 +75,9 @@ export const metadata: Metadata = {
     ],
     apple: "/icon.png",
   },
+  verification: {
+    google: "sKFt-4QgbG3-pxvI7zTxdsuHo6-5i8SWscmGRg1Fqi8",
+  },
 };
 
 import { FloatingNav } from "@/components/layout/FloatingNav";
